@@ -131,17 +131,47 @@ MOCK_DATA = {
 
 
 class MockHandler(BaseHTTPRequestHandler):
+    def _add_cors_headers(self):
+        origin = self.headers.get("Origin", "*")
+        self.send_header("Access-Control-Allow-Origin", origin if origin else "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Origin, Accept")
+        self.send_header("Access-Control-Max-Age", "86400")
+
     def _send_json(self, payload, status=200):
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
+        self._add_cors_headers()
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
 
+    def do_OPTIONS(self):
+        # Handle preflight for cross-origin requests when hosting UI separately
+        self.send_response(204)
+        self._add_cors_headers()
+        self.end_headers()
+
     def do_GET(self):
         parsed = urlparse(self.path)
-        if parsed.path == "/api/exercises":
+        if parsed.path == "/":
+            self._send_json(
+                {
+                    "message": "Volley Platform mock API",
+                    "endpoints": [
+                        "/api/exercises",
+                        "/api/trainings",
+                        "/api/clubs",
+                        "/api/roles",
+                        "/api/pending",
+                        "/health",
+                    ],
+                }
+            )
+        elif parsed.path == "/health":
+            self._send_json({"status": "ok"})
+        elif parsed.path == "/api/exercises":
             self._send_json(MOCK_DATA["exercises"])
         elif parsed.path == "/api/trainings":
             self._send_json(MOCK_DATA["trainings"])
