@@ -4,6 +4,7 @@ Run with: python prototype/mock_api.py
 """
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
+import os
 from urllib.parse import urlparse
 
 MOCK_DATA = {
@@ -158,9 +159,11 @@ class MockHandler(BaseHTTPRequestHandler):
         return
 
 
-def run_server(host="0.0.0.0", port=8001):
-    server = HTTPServer((host, port), MockHandler)
-    print(f"Mock API server running on http://{host}:{port}")
+def run_server(host="0.0.0.0", port=None):
+    # Render и други платформи подават порт чрез променлива PORT
+    effective_port = int(port or os.environ.get("PORT", 8001))
+    server = HTTPServer((host, effective_port), MockHandler)
+    print(f"Mock API server running on http://{host}:{effective_port}")
     print("Endpoints: /api/exercises, /api/trainings, /api/clubs, /api/roles, /api/pending")
     try:
         server.serve_forever()
