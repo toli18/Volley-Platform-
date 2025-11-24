@@ -99,6 +99,7 @@ python prototype/mock_api.py
 По подразбиране ще се отвори на `http://localhost:8001` със следните крайни точки:
 
 - `GET /` — кратък списък с наличните крайни точки (ползвайте го като sanity check след деплой)
+- `GET /api` — идентичен списък с крайни точки, ако платформата пренасочва root заявките
 - `GET /health` — здравен чек за платформи като Render/Railway
 - `GET /api/exercises` — примерни упражнения със статуси (approved, pending, draft)
 - `GET /api/trainings` — примерни тренировки със статуси (saved, approved)

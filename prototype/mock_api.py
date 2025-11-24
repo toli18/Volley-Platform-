@@ -129,6 +129,18 @@ MOCK_DATA = {
     },
 }
 
+API_INTRO = {
+    "message": "Volley Platform mock API",
+    "endpoints": [
+        "/api/exercises",
+        "/api/trainings",
+        "/api/clubs",
+        "/api/roles",
+        "/api/pending",
+        "/health",
+    ],
+}
+
 
 class MockHandler(BaseHTTPRequestHandler):
     def _add_cors_headers(self):
@@ -155,20 +167,8 @@ class MockHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urlparse(self.path)
-        if parsed.path == "/":
-            self._send_json(
-                {
-                    "message": "Volley Platform mock API",
-                    "endpoints": [
-                        "/api/exercises",
-                        "/api/trainings",
-                        "/api/clubs",
-                        "/api/roles",
-                        "/api/pending",
-                        "/health",
-                    ],
-                }
-            )
+        if parsed.path in {"/", "/api"}:
+            self._send_json(API_INTRO)
         elif parsed.path == "/health":
             self._send_json({"status": "ok"})
         elif parsed.path == "/api/exercises":
