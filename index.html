@@ -865,6 +865,21 @@
     const roleCan = document.getElementById('role-can');
     const roleActions = document.getElementById('role-actions');
 
+    const defaultApiBase = (() => {
+      try {
+        if (window?.location?.protocol?.startsWith('http')) {
+          return window.location.origin;
+        }
+      } catch (err) {
+        console.warn('Cannot detect origin, using localhost', err);
+      }
+      return 'http://localhost:8001';
+    })();
+
+    if (apiInput && !apiInput.value) {
+      apiInput.value = defaultApiBase;
+    }
+
     const targets = {
       exercises: document.getElementById('api-exercises'),
       trainings: document.getElementById('api-trainings'),
@@ -873,6 +888,11 @@
       roles: document.getElementById('api-roles'),
     };
     let roleCache = [];
+
+    function normalizeBase(url) {
+      const base = url || defaultApiBase;
+      return base.endsWith('/') ? base.slice(0, -1) : base;
+    }
 
     const statusIcons = {
       approved: '✅',
@@ -959,7 +979,7 @@
     }
 
     async function loadFromApi() {
-      const base = apiInput.value.trim().replace(/\/$/, '');
+      const base = normalizeBase(apiInput?.value?.trim());
       if (!base) {
         setStatus('Добави валиден URL', '#ef4444');
         return;
