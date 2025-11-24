@@ -159,6 +159,14 @@ class MockHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _send_bytes(self, body: bytes, status=200, content_type="text/plain; charset=utf-8"):
+        self.send_response(status)
+        self._add_cors_headers()
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
     def do_OPTIONS(self):
         # Handle preflight for cross-origin requests when hosting UI separately
         self.send_response(204)
@@ -167,7 +175,17 @@ class MockHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urlparse(self.path)
-        if parsed.path in {"/", "/api"}:
+        accept_header = self.headers.get("Accept", "") or ""
+        wants_html = "text/html" in accept_header
+
+        if parsed.path in {"/", "/index.html"} and wants_html:
+            index_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "index.html"))
+            if os.path.isfile(index_path):
+                with open(index_path, "rb") as f:
+                    self._send_bytes(f.read(), content_type="text/html; charset=utf-8")
+            else:
+                self._send_json(API_INTRO)
+        elif parsed.path in {"/", "/api"}:
             self._send_json(API_INTRO)
         elif parsed.path == "/health":
             self._send_json({"status": "ok"})
