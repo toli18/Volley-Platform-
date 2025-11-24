@@ -100,18 +100,36 @@
     }
 
     .demo-controls {
-      display: flex;
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
       gap: 12px;
-      align-items: center;
+      align-items: end;
       margin-bottom: 16px;
     }
 
+    .control-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
     .demo-controls input {
-      padding: 8px 12px;
-      border-radius: 8px;
+      padding: 10px 12px;
+      border-radius: 10px;
       border: 1px solid var(--border);
-      min-width: 280px;
+      min-width: 100%;
+    }
+
+    .demo-controls .demo-hint {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .control-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
     }
 
     .demo-controls button {
@@ -121,11 +139,24 @@
       background: var(--primary);
       color: #fff;
       cursor: pointer;
+      font-weight: 700;
+    }
+
+    .demo-controls button.ghost-btn {
+      background: #e2e8f0;
+      color: #0f172a;
+      border: 1px solid #cbd5e1;
     }
 
     .demo-controls button:focus-visible,
     .demo-controls button:hover {
-      opacity: 0.9;
+      opacity: 0.92;
+    }
+
+    .demo-status-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
 
     .demo-status {
@@ -452,10 +483,19 @@
       <h2 style="margin-top:0">Демо с Mock API</h2>
       <p class="demo-status">Тествай роли, упражнения и одобрения с данните от <code>prototype/mock_api.py</code>.</p>
       <div class="demo-controls">
-        <label for="api-url">API URL</label>
-        <input id="api-url" name="api-url" value="http://localhost:8001" aria-label="Базов URL на API" />
-        <button id="load-data" type="button">Зареди данни</button>
-        <span id="api-state" class="demo-status" aria-live="polite"></span>
+        <div class="control-stack">
+          <label for="api-url">API URL</label>
+          <input id="api-url" name="api-url" value="http://localhost:8001" aria-label="Базов URL на API" />
+          <p id="api-hint" class="demo-hint" aria-live="polite">Авто-попълване според текущия домейн</p>
+        </div>
+        <div class="control-actions">
+          <button id="load-data" type="button">Зареди данни</button>
+          <button id="reset-api" type="button" class="ghost-btn">Изчисти / локален</button>
+        </div>
+        <div class="demo-status-row">
+          <span id="api-state" class="demo-status" aria-live="polite"></span>
+          <span id="api-updated" class="demo-status" aria-live="polite">Последно обновяване: —</span>
+        </div>
       </div>
       <div class="demo-grid">
         <div class="demo-block">
@@ -859,11 +899,40 @@
   <script>
     const apiInput = document.getElementById('api-url');
     const apiState = document.getElementById('api-state');
+    const apiHint = document.getElementById('api-hint');
+    const apiUpdated = document.getElementById('api-updated');
+    const resetBtn = document.getElementById('reset-api');
     const btn = document.getElementById('load-data');
     const roleSelect = document.getElementById('role-select');
     const roleSource = document.getElementById('role-source');
     const roleCan = document.getElementById('role-can');
     const roleActions = document.getElementById('role-actions');
+
+    const API_STORAGE_KEY = 'volley_mock_api_base';
+
+    function getStoredBase() {
+      try {
+        return localStorage.getItem(API_STORAGE_KEY) || '';
+      } catch (err) {
+        return '';
+      }
+    }
+
+    function storeBase(base) {
+      try {
+        localStorage.setItem(API_STORAGE_KEY, base);
+      } catch (err) {
+        console.warn('Cannot store API base', err);
+      }
+    }
+
+    function clearStoredBase() {
+      try {
+        localStorage.removeItem(API_STORAGE_KEY);
+      } catch (err) {
+        console.warn('Cannot clear API base', err);
+      }
+    }
 
     const defaultApiBase = (() => {
       try {
@@ -876,8 +945,14 @@
       return 'http://localhost:8001';
     })();
 
-    if (apiInput && !apiInput.value) {
-      apiInput.value = defaultApiBase;
+    const prefilledBase = normalizeBase(getStoredBase() || defaultApiBase);
+    if (apiInput) {
+      apiInput.value = prefilledBase;
+    }
+    if (apiHint) {
+      apiHint.textContent = getStoredBase()
+        ? 'Използваме запазения адрес от последното тестване'
+        : `Авто-попълване според текущия домейн (${defaultApiBase})`;
     }
 
     const targets = {
@@ -943,6 +1018,13 @@
       apiState.style.color = color;
     }
 
+    function setUpdated(source) {
+      if (!apiUpdated) return;
+      const now = new Date();
+      const time = now.toLocaleTimeString('bg-BG', { hour: '2-digit', minute: '2-digit' });
+      apiUpdated.textContent = `Последно обновяване: ${time} • ${source}`;
+    }
+
     function renderList(items, target) {
       if (!target) return;
       const list = Array.isArray(items) && items.length ? items : ['Няма данни'];
@@ -982,6 +1064,7 @@
       const base = normalizeBase(apiInput?.value?.trim());
       if (!base) {
         setStatus('Добави валиден URL', '#ef4444');
+        setUpdated('няма зареждане');
         return;
       }
 
@@ -1081,6 +1164,8 @@
         renderRolePreview(roleSelect?.value || rolesArr[0]?.role);
 
         setStatus('Данните са заредени от API.');
+        setUpdated(`API (${base})`);
+        storeBase(base);
       } catch (err) {
         console.error(err);
         setStatus('API недостъпно — показваме примерни данни.', '#ef4444');
@@ -1129,10 +1214,23 @@
         }
         if (roleSource) roleSource.textContent = 'Източник: примерни данни';
         renderRolePreview(roleSelect?.value || roleCache[0]?.role);
+
+        setUpdated('примерни данни (fallback)');
       }
     }
 
     btn?.addEventListener('click', loadFromApi);
+    resetBtn?.addEventListener('click', () => {
+      clearStoredBase();
+      if (apiInput) {
+        apiInput.value = normalizeBase(defaultApiBase);
+      }
+      if (apiHint) {
+        apiHint.textContent = `Авто-попълване според текущия домейн (${defaultApiBase})`;
+      }
+      setStatus('Полето е върнато към локалния адрес.', '#0ea5e9');
+      setUpdated('изчистено — локален адрес');
+    });
     roleSelect?.addEventListener('change', (e) => renderRolePreview(e.target.value));
     document.addEventListener('DOMContentLoaded', () => {
       roleCache = fallback.roles;
@@ -1140,6 +1238,7 @@
         roleSelect.innerHTML = roleCache.map((r) => `<option value="${r.role}">${r.role}</option>`).join('');
       }
       renderRolePreview(roleSelect?.value || roleCache[0]?.role);
+      setUpdated('очаква зареждане');
       loadFromApi();
     });
   </script>
