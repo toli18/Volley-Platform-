@@ -541,6 +541,38 @@
       </div>
     </section>
 
+    <section class="coach-beta" aria-label="Клубен тест за треньори">
+      <div style="background:#0ea5e9;color:#0b2c3c;border-radius:18px;padding:20px;box-shadow:0 10px 30px rgba(14,165,233,0.2);display:grid;grid-template-columns:1fr;gap:12px;">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div style="background:#e0f2fe;color:#0b2c3c;padding:10px 14px;border-radius:12px;font-weight:700;">Клубен тест · Coach beta</div>
+          <p style="margin:0;font-size:0.95rem;max-width:760px;">Готов комплект за споделяне с треньори: линк към UI + живо API (или fallback), кратки стъпки и какво да проверят.</p>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;align-items:start;">
+          <div style="background:#e0f2fe;color:#0b2c3c;padding:12px 14px;border-radius:14px;">
+            <div style="font-weight:700;margin-bottom:6px;">Стъпка 1: Сподели линка</div>
+            <p style="margin:6px 0;font-size:0.95rem;">1) Ако UI и API са на един домейн (напр. Render процес), копирай публичния URL и го изпрати на треньорите.<br>2) Ако UI е отделно, добави адреса на API в полето „Адрес на API“.</p>
+          </div>
+          <div style="background:#e0f2fe;color:#0b2c3c;padding:12px 14px;border-radius:14px;">
+            <div style="font-weight:700;margin-bottom:6px;">Стъпка 2: Проверка за треньора</div>
+            <p style="margin:6px 0;font-size:0.95rem;">– Отвори „Демо с Mock API“ и натисни „Зареди данни“ (или изчакай авто-зареждане).<br>– Увери се, че клубовете се показват със статуси и лимити; упражненията имат статуси Approved/Pending/Draft.</p>
+          </div>
+          <div style="background:#e0f2fe;color:#0b2c3c;padding:12px 14px;border-radius:14px;">
+            <div style="font-weight:700;margin-bottom:6px;">Стъпка 3: Мини-сценарии</div>
+            <ul style="margin:6px 0 0 16px;padding:0;font-size:0.95rem;line-height:1.5;">
+              <li>Coach: предложи упражнение (виж статус „Чака одобрение“).</li>
+              <li>bfv_admin: одобри/откажи предложение (наблюдавай промяната).</li>
+              <li>Провери тренировки/клубове и ролите в „Преглед по роля“.</li>
+            </ul>
+          </div>
+          <div style="background:#e0f2fe;color:#0b2c3c;padding:12px 14px;border-radius:14px;display:grid;gap:6px;">
+            <div style="font-weight:700;">Статус на средата</div>
+            <div id="coachBetaStatus" style="display:flex;align-items:center;gap:8px;font-size:0.95rem;flex-wrap:wrap;"></div>
+            <p style="margin:0;font-size:0.85rem;color:#164e63;">Лентата „Последно обновяване“ (над панелите) също показва дали данните идват от API или fallback.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="roles" aria-label="Роли и права">
       <h2>Роли в платформата</h2>
       <div class="role-grid">
@@ -903,6 +935,7 @@
     const apiUpdated = document.getElementById('api-updated');
     const resetBtn = document.getElementById('reset-api');
     const btn = document.getElementById('load-data');
+    const coachBetaStatus = document.getElementById('coachBetaStatus');
     const roleSelect = document.getElementById('role-select');
     const roleSource = document.getElementById('role-source');
     const roleCan = document.getElementById('role-can');
@@ -1023,6 +1056,11 @@
       const now = new Date();
       const time = now.toLocaleTimeString('bg-BG', { hour: '2-digit', minute: '2-digit' });
       apiUpdated.textContent = `Последно обновяване: ${time} • ${source}`;
+    }
+
+    function setCoachBeta(message, color = '#0b2c3c', icon = 'ℹ️') {
+      if (!coachBetaStatus) return;
+      coachBetaStatus.innerHTML = `<span style="display:inline-flex;align-items:center;gap:6px;background:#e0f2fe;color:${color};padding:8px 12px;border-radius:12px;font-weight:600;">${icon} ${message}</span>`;
     }
 
     function renderList(items, target) {
@@ -1165,10 +1203,12 @@
 
         setStatus('Данните са заредени от API.');
         setUpdated(`API (${base})`);
+        setCoachBeta('API активно — готово за споделяне с треньори', '#166534', '✅');
         storeBase(base);
       } catch (err) {
         console.error(err);
         setStatus('API недостъпно — показваме примерни данни.', '#ef4444');
+        setCoachBeta('Fallback: примерни данни (API недостъпно)', '#b91c1c', '⚠️');
         renderPills(
           fallback.exercises,
           (x) => ({ label: x.name, detail: `${x.category || ''} • ${x.owner || ''}`.trim(), status: x.status }),
@@ -1230,6 +1270,7 @@
       }
       setStatus('Полето е върнато към локалния адрес.', '#0ea5e9');
       setUpdated('изчистено — локален адрес');
+      setCoachBeta('Използвайте локален адрес или автодетект за споделяне', '#0b2c3c', 'ℹ️');
     });
     roleSelect?.addEventListener('change', (e) => renderRolePreview(e.target.value));
     document.addEventListener('DOMContentLoaded', () => {
@@ -1239,6 +1280,7 @@
       }
       renderRolePreview(roleSelect?.value || roleCache[0]?.role);
       setUpdated('очаква зареждане');
+      setCoachBeta('Очаква зареждане — готово за тест', '#0f172a', '⏳');
       loadFromApi();
     });
   </script>
