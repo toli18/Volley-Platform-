@@ -170,6 +170,33 @@
       gap: 16px;
     }
 
+    .block-header {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: flex-start;
+    }
+
+    .filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .filter-row input,
+    .filter-row select {
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      min-width: 120px;
+    }
+
+    .filter-row input {
+      flex: 1 1 160px;
+    }
+
     .demo-grid h3 {
       margin-top: 0;
     }
@@ -499,7 +526,21 @@
       </div>
       <div class="demo-grid">
         <div class="demo-block">
-          <h3>Упражнения</h3>
+          <div class="block-header">
+            <h3 style="margin:0">Упражнения</h3>
+            <div class="filter-row" aria-label="Филтри за упражнения">
+              <input type="text" id="exercise-search" placeholder="Търси по име" aria-label="Търси упражнения" />
+              <select id="exercise-status" aria-label="Статус на упражнение">
+                <option value="all">Всички статуси</option>
+                <option value="approved">Approved</option>
+                <option value="pending">Pending</option>
+                <option value="draft">Draft</option>
+              </select>
+              <select id="exercise-category" aria-label="Категория на упражнение">
+                <option value="all">Всички категории</option>
+              </select>
+            </div>
+          </div>
           <div id="api-exercises" class="badge-row" aria-live="polite"></div>
         </div>
         <div class="demo-block">
@@ -507,12 +548,45 @@
           <div id="api-trainings" class="badge-row" aria-live="polite"></div>
         </div>
         <div class="demo-block">
-          <h3>Клубове</h3>
+          <div class="block-header">
+            <h3 style="margin:0">Клубове</h3>
+            <div class="filter-row" aria-label="Филтър за клубове">
+              <select id="club-status" aria-label="Статус на клуб">
+                <option value="all">Всички статуси</option>
+                <option value="active">Active</option>
+                <option value="pending">Pending</option>
+              </select>
+            </div>
+          </div>
           <div id="api-clubs" class="badge-row" aria-live="polite"></div>
         </div>
         <div class="demo-block">
-          <h3>Чакащи одобрения</h3>
+          <div class="block-header">
+            <h3 style="margin:0">Чакащи одобрения</h3>
+            <div class="filter-row" aria-label="Филтър за одобрения">
+              <select id="pending-type" aria-label="Тип на чакащи">
+                <option value="all">Всички типове</option>
+                <option value="exercise">Упражнения</option>
+                <option value="article">Статии</option>
+                <option value="forum">Форум</option>
+              </select>
+            </div>
+          </div>
           <div id="api-pending" class="badge-row" aria-live="polite"></div>
+          <div style="margin-top:12px; text-align:left;">
+            <div class="filter-row" aria-label="Предложи упражнение">
+              <input type="text" id="propose-name" placeholder="Име на упражнение" aria-label="Име на упражнение" />
+              <select id="propose-category" aria-label="Категория на упражнение">
+                <option value="Подаване">Подаване</option>
+                <option value="Блок">Блок</option>
+                <option value="Сервис">Сервис</option>
+                <option value="Общо">Общо</option>
+              </select>
+              <button id="btn-propose" type="button">Предложи упражнение</button>
+            </div>
+            <div id="pending-actions" class="badge-row" style="margin-top:8px; text-align:left; display:grid; gap:8px;">
+            </div>
+          </div>
         </div>
         <div class="demo-block">
           <h3>Права по роли</h3>
@@ -995,7 +1069,20 @@
       pending: document.getElementById('api-pending'),
       roles: document.getElementById('api-roles'),
     };
+    const exerciseSearch = document.getElementById('exercise-search');
+    const exerciseStatus = document.getElementById('exercise-status');
+    const exerciseCategory = document.getElementById('exercise-category');
+    const clubStatus = document.getElementById('club-status');
+    const pendingType = document.getElementById('pending-type');
+    const proposeName = document.getElementById('propose-name');
+    const proposeCategory = document.getElementById('propose-category');
+    const proposeBtn = document.getElementById('btn-propose');
+    const pendingActions = document.getElementById('pending-actions');
     let roleCache = [];
+    let exerciseCache = [];
+    let trainingCache = [];
+    let clubCache = [];
+    let pendingCache = { exercises: [], articles: [], forum_reports: [] };
 
     function normalizeBase(url) {
       const base = url || defaultApiBase;
@@ -1045,6 +1132,17 @@
         },
       ],
     };
+
+    function populateCategories(items = []) {
+      if (!exerciseCategory) return;
+      const cats = new Set(['all']);
+      items.forEach((x) => {
+        if (x.category) cats.add((x.category || '').trim());
+      });
+      exerciseCategory.innerHTML = Array.from(cats)
+        .map((c) => `<option value="${c.toLowerCase()}">${c === 'all' ? 'Всички категории' : c}</option>`)
+        .join('');
+    }
 
     function setStatus(message, color = '#475569') {
       apiState.textContent = message;
@@ -1098,6 +1196,180 @@
         .join('');
     }
 
+    function applyExerciseFilters() {
+      const term = (exerciseSearch?.value || '').toLowerCase();
+      const status = (exerciseStatus?.value || 'all').toLowerCase();
+      const cat = (exerciseCategory?.value || 'all').toLowerCase();
+      const filtered = (exerciseCache || []).filter((x) => {
+        const matchTerm = !term || (x.name || '').toLowerCase().includes(term);
+        const matchStatus = status === 'all' || (x.status || '').toLowerCase() === status;
+        const matchCat = cat === 'all' || (x.category || '').toLowerCase() === cat;
+        return matchTerm && matchStatus && matchCat;
+      });
+      renderPills(
+        filtered,
+        (x) => ({
+          label: x.name,
+          detail: `${x.status || ''} • ${x.category || x.owner || 'без категория'}`.trim(),
+          status: x.status,
+        }),
+        targets.exercises,
+      );
+    }
+
+    function renderTrainings() {
+      renderPills(
+        trainingCache,
+        (x) => ({ label: x.name, detail: `${x.status} • ${x.duration} мин.`, status: x.status }),
+        targets.trainings,
+      );
+    }
+
+    function applyClubFilters() {
+      const filterStatus = (clubStatus?.value || 'all').toLowerCase();
+      const filtered = (clubCache || []).filter((c) => {
+        const status = (c.status || '').toLowerCase();
+        return filterStatus === 'all' || status === filterStatus;
+      });
+      renderPills(
+        filtered,
+        (x) => ({
+          label: x.name,
+          detail: `${x.status} • треньори ${x.coaches || 0}/${x.coach_limit || 4}${x.bfv_admin ? ` • ${x.bfv_admin}` : ''}`,
+          status: x.status === 'pending' ? 'pending' : 'approved',
+        }),
+        targets.clubs,
+      );
+    }
+
+    function applyPendingFilters() {
+      const filterType = (pendingType?.value || 'all').toLowerCase();
+      const pendingItems = [];
+      if (pendingCache?.exercises?.length) {
+        pendingItems.push(
+          ...pendingCache.exercises.map((x) => ({
+            ...x,
+            label: x.name,
+            detail: `упражнение • ${x.proposed_by || 'coach'}`,
+            status: 'pending',
+            type: 'exercise',
+          })),
+        );
+      }
+      if (pendingCache?.articles?.length) {
+        pendingItems.push(
+          ...pendingCache.articles.map((x) => ({
+            ...x,
+            label: x.title || x.name,
+            detail: `статия • ${x.proposed_by || 'coach'}`,
+            status: 'pending',
+            type: 'article',
+          })),
+        );
+      }
+      if (pendingCache?.forum_reports?.length) {
+        pendingItems.push(
+          ...pendingCache.forum_reports.map((x) => ({
+            ...x,
+            label: x.topic || x.name,
+            detail: `форум • ${x.reason || 'сигнал'}`,
+            status: 'moderation',
+            type: 'forum',
+          })),
+        );
+      }
+
+      const filtered = pendingItems.filter((p) => filterType === 'all' || (p.type || '').toLowerCase() === filterType);
+      renderPills(
+        filtered,
+        (x) => ({
+          label: x.label,
+          detail: x.detail,
+          status: x.status,
+        }),
+        targets.pending,
+      );
+
+      const exerciseOnly = filtered.filter((p) => p.type === 'exercise');
+      if (pendingActions) {
+        if (!exerciseOnly.length) {
+          pendingActions.innerHTML = '<span class="pill">Няма чакащи упражнения</span>';
+        } else {
+          pendingActions.innerHTML = exerciseOnly
+            .map(
+              (x) => `
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                  <span class="pill" style="background:#fff;border:1px solid #e2e8f0;">⏳ ${x.label} — ${x.detail}</span>
+                  <div style="display:flex;gap:6px;">
+                    <button data-action="approve" data-id="${x.id}" style="background:var(--success);color:#fff;border:none;padding:6px 10px;border-radius:10px;cursor:pointer;">Одобри</button>
+                    <button data-action="reject" data-id="${x.id}" style="background:var(--danger);color:#fff;border:none;padding:6px 10px;border-radius:10px;cursor:pointer;">Откажи</button>
+                  </div>
+                </div>
+              `,
+            )
+            .join('');
+          pendingActions.querySelectorAll('button[data-action]').forEach((btn) => {
+            btn.addEventListener('click', (e) => handlePendingAction(e.target.dataset.action, Number(e.target.dataset.id)));
+          });
+        }
+      }
+    }
+
+    async function handlePendingAction(action, id) {
+      if (!id || !['approve', 'reject'].includes(action)) return;
+      const base = normalizeBase(apiInput?.value?.trim() || defaultApiBase);
+      const url = `${base}/api/pending/exercises/${id}/${action}`;
+      try {
+        const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+        if (!res.ok) throw new Error('API error');
+        const data = await res.json();
+        pendingCache.exercises = (pendingCache.exercises || []).filter((x) => x.id !== id);
+        if (action === 'approve' && data?.item) {
+          exerciseCache = [...exerciseCache, { ...data.item, status: data.item.status || 'approved' }];
+        }
+        applyExerciseFilters();
+        applyPendingFilters();
+        setStatus(`Успешно ${action === 'approve' ? 'одобрение' : 'отказ'} чрез API`, '#166534');
+        setUpdated(`API (${base})`);
+      } catch (err) {
+        // Fallback локално поведение
+        pendingCache.exercises = (pendingCache.exercises || []).filter((x) => x.id !== id);
+        if (action === 'approve') {
+          const fallbackItem = { id, name: `Одобрено упражнение #${id}`, status: 'approved', category: 'Общо' };
+          exerciseCache = [...exerciseCache, fallbackItem];
+        }
+        applyExerciseFilters();
+        applyPendingFilters();
+        setStatus(`API недостъпно — ${action} записано локално`, '#b91c1c');
+      }
+    }
+
+    async function proposeExercise() {
+      const name = (proposeName?.value || '').trim() || 'Ново упражнение';
+      const category = (proposeCategory?.value || 'Общо').trim();
+      const base = normalizeBase(apiInput?.value?.trim() || defaultApiBase);
+      const payload = { name, category, proposed_by: 'coach.demo' };
+      try {
+        const res = await fetch(`${base}/api/pending/exercises`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error('API error');
+        const data = await res.json();
+        const item = data?.item || payload;
+        pendingCache.exercises = [...(pendingCache.exercises || []), item];
+        applyPendingFilters();
+        setStatus('Предложението е изпратено към API (pending).', '#166534');
+        setUpdated(`API (${base})`);
+      } catch (err) {
+        const localItem = { id: Date.now(), name, category, proposed_by: 'coach.demo' };
+        pendingCache.exercises = [...(pendingCache.exercises || []), localItem];
+        applyPendingFilters();
+        setStatus('API недостъпно — предложението е в локалния pending списък.', '#b91c1c');
+      }
+    }
+
     async function loadFromApi() {
       const base = normalizeBase(apiInput?.value?.trim());
       if (!base) {
@@ -1116,68 +1388,16 @@
           fetch(`${base}/api/roles`).then((r) => r.json()),
         ]);
 
-        renderPills(exercises, (x) => ({
-          label: x.name,
-          detail: `${x.status} • ${x.category || x.owner || 'без категория'}`,
-          status: x.status,
-        }), targets.exercises);
+        exerciseCache = Array.isArray(exercises) ? exercises : [];
+        trainingCache = Array.isArray(trainings) ? trainings : [];
+        clubCache = Array.isArray(clubs) ? clubs : [];
+        pendingCache = pending || { exercises: [], articles: [], forum_reports: [] };
 
-        renderPills(trainings, (x) => ({
-          label: x.name,
-          detail: `${x.status} • ${x.duration} мин.`,
-          status: x.status,
-        }), targets.trainings);
-
-        renderPills(
-          clubs,
-          (x) => ({
-            label: x.name,
-            detail: `${x.status} • треньори ${x.coaches || 0}/${x.coach_limit || 4}${
-              x.bfv_admin ? ` • ${x.bfv_admin}` : ''
-            }`,
-            status: x.status === 'pending' ? 'pending' : 'approved',
-          }),
-          targets.clubs,
-        );
-
-        const pendingItems = [];
-        if (pending?.exercises?.length) {
-          pendingItems.push(
-            ...pending.exercises.map((x) => ({
-              label: x.name,
-              detail: `упражнение • ${x.proposed_by || 'coach'}`,
-              status: 'pending',
-            })),
-          );
-        }
-        if (pending?.articles?.length) {
-          pendingItems.push(
-            ...pending.articles.map((x) => ({
-              label: x.title || x.name,
-              detail: `статия • ${x.proposed_by || 'coach'}`,
-              status: 'pending',
-            })),
-          );
-        }
-        if (pending?.forum_reports?.length) {
-          pendingItems.push(
-            ...pending.forum_reports.map((x) => ({
-              label: x.topic || x.name,
-              detail: `форум • ${x.reason || 'сигнал'}`,
-              status: 'moderation',
-            })),
-          );
-        }
-
-        renderPills(
-          pendingItems,
-          (x) => ({
-            label: x.label,
-            detail: x.detail,
-            status: x.status,
-          }),
-          targets.pending,
-        );
+        populateCategories(exerciseCache);
+        applyExerciseFilters();
+        renderTrainings();
+        applyClubFilters();
+        applyPendingFilters();
 
         const rolesArr = Array.isArray(roles) ? roles : Object.values(roles || {});
         renderPills(
@@ -1209,37 +1429,17 @@
         console.error(err);
         setStatus('API недостъпно — показваме примерни данни.', '#ef4444');
         setCoachBeta('Fallback: примерни данни (API недостъпно)', '#b91c1c', '⚠️');
-        renderPills(
-          fallback.exercises,
-          (x) => ({ label: x.name, detail: `${x.category || ''} • ${x.owner || ''}`.trim(), status: x.status }),
-          targets.exercises,
-        );
-        renderPills(
-          fallback.trainings,
-          (x) => ({ label: x.name, detail: `${x.status} • ${x.duration} мин.`, status: x.status }),
-          targets.trainings,
-        );
-        renderPills(
-          fallback.clubs,
-          (x) => ({
-            label: x.name,
-            detail: `${x.status} • треньори ${x.coaches || 0}/${x.coach_limit || 4}${
-              x.bfv_admin ? ` • ${x.bfv_admin}` : ''
-            }`,
-            status: x.status === 'pending' ? 'pending' : 'approved',
-          }),
-          targets.clubs,
-        );
-        const fallbackPending = [
-          ...(fallback.pending?.exercises || []),
-          ...(fallback.pending?.articles || []),
-          ...(fallback.pending?.forum_reports || []),
-        ];
-        renderPills(
-          fallbackPending,
-          (x) => ({ label: x.name, detail: x.type || 'item', status: x.status || 'pending' }),
-          targets.pending,
-        );
+        exerciseCache = fallback.exercises;
+        trainingCache = fallback.trainings;
+        clubCache = fallback.clubs;
+        pendingCache = fallback.pending;
+
+        populateCategories(exerciseCache);
+        applyExerciseFilters();
+        renderTrainings();
+        applyClubFilters();
+        applyPendingFilters();
+
         renderPills(
           fallback.roles,
           (x) => ({ label: x.role, detail: Array.isArray(x.can) ? x.can.join(', ') : x.can }),
@@ -1273,6 +1473,12 @@
       setCoachBeta('Използвайте локален адрес или автодетект за споделяне', '#0b2c3c', 'ℹ️');
     });
     roleSelect?.addEventListener('change', (e) => renderRolePreview(e.target.value));
+    exerciseSearch?.addEventListener('input', applyExerciseFilters);
+    exerciseStatus?.addEventListener('change', applyExerciseFilters);
+    exerciseCategory?.addEventListener('change', applyExerciseFilters);
+    clubStatus?.addEventListener('change', applyClubFilters);
+    pendingType?.addEventListener('change', applyPendingFilters);
+    proposeBtn?.addEventListener('click', proposeExercise);
     document.addEventListener('DOMContentLoaded', () => {
       roleCache = fallback.roles;
       if (roleSelect) {

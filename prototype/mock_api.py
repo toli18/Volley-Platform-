@@ -137,16 +137,27 @@ API_INTRO = {
         "/api/clubs",
         "/api/roles",
         "/api/pending",
+        "POST /api/pending/exercises",
+        "POST /api/pending/exercises/<id>/approve",
+        "POST /api/pending/exercises/<id>/reject",
         "/health",
     ],
 }
+
+
+def _next_exercise_id():
+    """Return the next available exercise id across exercises and pending."""
+
+    existing_ids = [e.get("id", 0) for e in MOCK_DATA.get("exercises", [])]
+    existing_ids += [e.get("id", 0) for e in MOCK_DATA.get("pending", {}).get("exercises", [])]
+    return (max(existing_ids) if existing_ids else 0) + 1
 
 
 class MockHandler(BaseHTTPRequestHandler):
     def _add_cors_headers(self):
         origin = self.headers.get("Origin", "*")
         self.send_header("Access-Control-Allow-Origin", origin if origin else "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, Origin, Accept")
         self.send_header("Access-Control-Max-Age", "86400")
 
@@ -166,6 +177,19 @@ class MockHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    def _read_json_body(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+        except (TypeError, ValueError):
+            length = 0
+        if length <= 0:
+            return {}
+        try:
+            data = self.rfile.read(length)
+            return json.loads(data.decode("utf-8")) if data else {}
+        except Exception:
+            return {}
 
     def do_OPTIONS(self):
         # Handle preflight for cross-origin requests when hosting UI separately
@@ -201,6 +225,62 @@ class MockHandler(BaseHTTPRequestHandler):
             self._send_json(MOCK_DATA["pending"])
         else:
             self._send_json({"error": "not found"}, status=404)
+
+    def do_POST(self):
+        parsed = urlparse(self.path)
+
+        if parsed.path == "/api/pending/exercises":
+            payload = self._read_json_body()
+            name = payload.get("name") or "Ново упражнение"
+            category = payload.get("category") or "Общо"
+            proposed_by = payload.get("proposed_by") or "coach.demo"
+            new_item = {
+                "id": _next_exercise_id(),
+                "name": name,
+                "category": category,
+                "proposed_by": proposed_by,
+                "needs": payload.get("needs") or "review",
+            }
+            MOCK_DATA.setdefault("pending", {}).setdefault("exercises", []).append(new_item)
+            self._send_json({"status": "queued", "item": new_item}, status=201)
+            return
+
+        if parsed.path.startswith("/api/pending/exercises/"):
+            parts = parsed.path.rstrip("/").split("/")
+            try:
+                exercise_id = int(parts[-1])
+            except (TypeError, ValueError):
+                self._send_json({"error": "invalid id"}, status=400)
+                return
+
+            action = parts[-2] if len(parts) >= 2 else None
+            pending_list = MOCK_DATA.get("pending", {}).get("exercises", [])
+            match = next((x for x in pending_list if x.get("id") == exercise_id), None)
+            if not match:
+                self._send_json({"error": "not found"}, status=404)
+                return
+
+            if action == "approve":
+                pending_list.remove(match)
+                new_ex = {
+                    "id": match.get("id"),
+                    "name": match.get("name"),
+                    "category": match.get("category", "Общо"),
+                    "status": "approved",
+                    "level": payload.get("level") if (payload := self._read_json_body()) else "",
+                    "proposed_by": match.get("proposed_by"),
+                    "approved_by": payload.get("approved_by") if payload else "bfv_admin.demo",
+                }
+                MOCK_DATA.setdefault("exercises", []).append(new_ex)
+                self._send_json({"status": "approved", "item": new_ex})
+                return
+
+            if action == "reject":
+                pending_list.remove(match)
+                self._send_json({"status": "rejected", "removed": match})
+                return
+
+        self._send_json({"error": "not found"}, status=404)
 
     def log_message(self, format, *args):
         # Silence default stdout logging for cleaner console output
