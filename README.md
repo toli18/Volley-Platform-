@@ -119,3 +119,29 @@ python prototype/mock_api.py
 (хостнат на друг домейн/порт) да взема данни без допълнителни проксита.
 
 Можете да използвате тези JSON данни в бъдещ интерактивен фронтенд или Postman за бърза проверка на сценарии.
+
+## План за база данни
+
+Докато mock API-то служи за демонстрация, следващата стъпка е да въведем реална база данни (предложение: PostgreSQL) с миграции (напр. Alembic) и начално зареждане на примерни данни. Предложеното изпълнение е разбито на малки фази:
+
+1. **Схема и модели** (седмица 1)
+   - Таблици: `users` (роля: platform_admin/bfv_admin/coach), `clubs`, `club_members` (coach към клуб с лимит), `exercises`, `trainings`, `training_items`, `articles`, `pending_items` (упражнения/статии/форуми чакащи одобрение), `forum_topics`/`forum_posts`, `approvals` (одобрил/отказал/коментар), `audit_log`.
+   - Връзки: `clubs` ⇄ `bfv_admin_id`; `pending_items` с `submitted_by` и `type`; `exercises` с `approved_by`; `trainings` с `created_by` и свързани упражнения през `training_items`.
+   - Миграция: базов файл с начална схема + seed данни, които съвпадат с текущите mock стойности.
+
+2. **API слой върху базата** (седмица 2)
+   - REST/GraphQL (минимален FastAPI/Flask) с endpoints, които заменят статичните JSON-и: `/api/exercises`, `/api/trainings`, `/api/clubs`, `/api/roles`, `/api/pending`, `/api/approvals`.
+   - Добавяне на POST за „предлагане“ на упражнение/статия (coach) и PATCH/POST за „одобрение/отказ“ (bfv_admin), с транзакции и актуализация на статус.
+   - Health check `/health` остава непроменен.
+
+3. **Обвързване с фронтенда** (седмица 3)
+   - Wireframe-ът запазва текущата fallback логика, но fetch-ва реалните endpoints; добавяме минимална форма за предлагане на упражнение (POST) и бутони „Одобри/Откажи“ върху записите в pending.
+   - Добавяме визуална индикация кога данните идват от база (API OK) vs fallback.
+
+4. **Деплой и конфигурация**
+   - Локално: docker-compose с PostgreSQL или облачен dev инстанс; env-променливи `DATABASE_URL`, `PORT` (за API), `ALLOWED_ORIGINS`.
+   - Хостинг: managed Postgres (Render/Railway/Fly/Neon). Първоначално деплой на API без auth (само демо), след това добавяне на JWT/AuthN/AuthZ.
+
+5. **Следващи стъпки**
+   - Добавяне на реална аутентикация и авторизация по роли, soft-delete/archiving за упражнения/тренировки, и пълни одит логове.
+   - Инкрементално мигриране на mock данните към таблиците (еднократно seed-ване + регулярни миграции при промени).
