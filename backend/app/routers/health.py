@@ -1,18 +1,21 @@
 from fastapi import APIRouter
-from sqlalchemy import text
+from backend.app.database import SessionLocal
 
-from backend.app.database import engine
-
-router = APIRouter(tags=["health"])
+router = APIRouter(prefix="/health", tags=["health"])
 
 
-@router.get("/health")
+@router.get("/")
 def health():
     return {"status": "ok"}
 
 
 @router.get("/db")
-def db_check():
-    with engine.connect() as conn:
-        result = conn.execute(text("SELECT 1"))
-        return {"db": result.scalar()}
+def db_health():
+    try:
+        db = SessionLocal()
+        db.execute("SELECT 1")
+        return {"database": "ok"}
+    except Exception as e:
+        return {"database": "error", "details": str(e)}
+    finally:
+        db.close()
