@@ -184,9 +184,11 @@ A first cut of the real API now lives under `backend/` using FastAPI, SQLAlchemy
 
 ### Quickstart (local)
 1. Install dependencies: `pip install -r requirements.txt`.
+   * Ако корпоративният прокси блокира изтеглянето (напр. `403 Forbidden`), задайте огледален индекс `PIP_INDEX_URL` (вътрешен PyPI mirror) или предоставете предварително свалени wheels чрез `pip install --no-index --find-links ./vendor -r requirements.txt`.
 2. Start Postgres locally (or use Docker): `docker-compose up db`.
-3. Run the API: `uvicorn backend.app.main:app --reload`.
-4. Open http://localhost:8000/docs to exercise the endpoints.
+3. Apply the Alembic migrations (изисква активна DB): `alembic -c backend/alembic.ini upgrade head`.
+4. Run the API: `uvicorn backend.app.main:app --reload`.
+5. Open http://localhost:8000/docs to exercise the endpoints.
 
 ### Docker Compose
 * `docker-compose up` starts Postgres and the API together. The API reads `DATABASE_URL` and `JWT_SECRET` from environment variables (defaults are set in `docker-compose.yml`).
@@ -194,6 +196,7 @@ A first cut of the real API now lives under `backend/` using FastAPI, SQLAlchemy
 ### Database migrations
 * Alembic config lives in `backend/alembic.ini` with the first migration at `backend/app/migrations/versions/0001_initial.py`.
 * To run migrations manually: `alembic -c backend/alembic.ini upgrade head`.
+* **Важно:** API-то вече не прави `Base.metadata.create_all()` при старт; разчитайте само на миграции, за да няма дрейф между среди.
 
 ### Seeding data
 * Run `python backend/seed_data.py` after the database is up to create platform_admin, bfv_admin, the sample clubs/coaches, and a demo article.
