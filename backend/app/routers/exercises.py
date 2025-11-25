@@ -10,6 +10,7 @@ from backend.app.schemas import (
     ExerciseSuggestionCreateSchema,
     ExerciseSuggestionReadSchema,
 )
+from backend.app.services.import_exercises import import_from_excel
 
 router = APIRouter(prefix="/exercises", tags=["exercises"])
 
@@ -47,6 +48,19 @@ def create_exercise(
     db.commit()
     db.refresh(exercise)
     return exercise
+
+
+@router.post(
+    "/import",
+    dependencies=[Depends(require_role(UserRole.platform_admin, UserRole.bfv_admin))],
+)
+def import_exercises():
+    new_count, updated_count = import_from_excel()
+    return {
+        "imported": new_count,
+        "updated": updated_count,
+        "message": f"Imported {new_count} new exercises, updated {updated_count} existing exercises",
+    }
 
 
 @router.post(
