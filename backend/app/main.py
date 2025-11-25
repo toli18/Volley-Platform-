@@ -1,7 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.app.routers import auth, clubs, exercises, trainings, articles, forum, health
+from backend.app.routers import (
+    auth,
+    clubs,
+    exercises,
+    trainings,
+    articles,
+    forum,
+    health,
+)
 
 app = FastAPI(title="Volley Platform API")
 
@@ -24,4 +32,15 @@ app.include_router(forum.router)
 
 @app.get("/")
 def root():
-    return {"message": "Volley Platform API", "endpoints": ["/auth/login", "/auth/me", "/exercises", "/trainings", "/clubs", "/articles", "/forum/categories"]}
+    return {
+        "message": "Volley Platform API",
+        "endpoints": [
+            "/auth/login",
+            "/auth/me",
+            "/exercises",
+            "/trainings",
+            "/clubs",
+            "/articles",
+            "/forum/categories",
+        ],
+    }
