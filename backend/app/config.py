@@ -1,8 +1,11 @@
 from functools import lru_cache
-from pydantic import BaseSettings, Field
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+
     app_name: str = "Volley Platform API"
     debug: bool = False
     database_url: str = Field(
@@ -14,11 +17,7 @@ class Settings(BaseSettings):
     refresh_token_expires_minutes: int = 60 * 24 * 7
     storage_path: str = "./storage"
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-
-
+    
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     return Settings()
