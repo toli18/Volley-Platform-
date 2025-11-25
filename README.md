@@ -201,6 +201,7 @@ A first cut of the real API now lives under `backend/` using FastAPI, SQLAlchemy
 ### Seeding data
 * Run `python backend/seed_data.py` after the database is up to create platform_admin, bfv_admin, the sample clubs/coaches, and a demo article.
 * To add two coaches per club across the core club list, run `python -m backend.app.seed.seed_clubs_and_coaches` (or `bash backend/app/seed/run_seed.sh`).
+* To insert all Bulgarian clubs (по региони) с по двама треньори към всеки клуб, изпълнете `python -m backend.app.seed.seed_all_clubs`.
 * If `/mnt/data/volleyball_exercises_normalized.xlsx` exists, it will be imported into the `exercises` table; if not present, seeding skips the Excel import.
 
 ### Initial endpoints (MVP scope)
