@@ -4,7 +4,12 @@ from sqlalchemy.orm import Session
 
 from backend.app.dependencies import get_db_session, require_role, get_current_user
 from backend.app.models import ForumCategory, ForumTopic, ForumPost, UserRole
-from backend.app.schemas import ForumCategorySchema, ForumPostSchema, ForumTopicSchema
+from backend.app.schemas import (
+    ForumCategorySchema,
+    ForumPostSchema,
+    ForumThreadSchema,
+    ForumTopicSchema,
+)
 
 router = APIRouter(prefix="/forum", tags=["forum"])
 
