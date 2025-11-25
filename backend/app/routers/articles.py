@@ -4,7 +4,11 @@ from sqlalchemy.orm import Session
 
 from backend.app.dependencies import get_db_session, require_role, get_current_user
 from backend.app.models import Article, ArticleSuggestion, UserRole
-from backend.app.schemas import ArticleCreateSchema, ArticleReadSchema
+from backend.app.schemas import (
+    ArticleCreateSchema,
+    ArticleReadSchema,
+    ArticleSuggestionSchema,
+)
 
 router = APIRouter(prefix="/articles", tags=["articles"])
 
@@ -39,6 +43,7 @@ def create_article(
 
 @router.post(
     "/suggestions",
+    response_model=ArticleSuggestionSchema,
     dependencies=[
         Depends(
             require_role(UserRole.coach, UserRole.bfv_admin, UserRole.platform_admin)

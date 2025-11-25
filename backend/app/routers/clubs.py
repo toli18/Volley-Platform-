@@ -3,17 +3,22 @@ from sqlalchemy.orm import Session
 
 from backend.app.dependencies import get_db_session, require_role
 from backend.app.models import Club, User, UserRole
+from backend.app.schemas import ClubSchema, UserReadSchema
 from backend.app.security import get_password_hash
 
 router = APIRouter(prefix="/clubs", tags=["clubs"])
 
 
-@router.get("/")
+@router.get("/", response_model=list[ClubSchema])
 def list_clubs(db: Session = Depends(get_db_session)):
     return db.query(Club).all()
 
 
-@router.post("/", dependencies=[Depends(require_role(UserRole.platform_admin))])
+@router.post(
+    "/",
+    response_model=ClubSchema,
+    dependencies=[Depends(require_role(UserRole.platform_admin))],
+)
 def create_club(club: dict, db: Session = Depends(get_db_session)):
     name = club.get("name")
     if not name:
@@ -31,7 +36,9 @@ def create_club(club: dict, db: Session = Depends(get_db_session)):
 @router.post(
     "/{club_id}/coaches", dependencies=[Depends(require_role(UserRole.bfv_admin))]
 )
-def add_coach(club_id: int, payload: dict, db: Session = Depends(get_db_session)):
+def add_coach(
+    club_id: int, payload: dict, db: Session = Depends(get_db_session)
+) -> UserReadSchema:
     email = payload.get("email")
     name = payload.get("name")
     password = payload.get("password", "changeme123")
