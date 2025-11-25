@@ -137,6 +137,7 @@ API_INTRO = {
         "/api/clubs",
         "/api/roles",
         "/api/pending",
+        "/api/stats",
         "POST /api/pending/exercises",
         "POST /api/pending/exercises/<id>/approve",
         "POST /api/pending/exercises/<id>/reject",
@@ -209,6 +210,18 @@ def _next_exercise_id():
     return (max(existing_ids) if existing_ids else 0) + 1
 
 
+def _compute_stats():
+    pending = STATE.get("pending", {})
+    pending_total = sum(len(v) for v in pending.values() if isinstance(v, list))
+    return {
+        "exercises": len(STATE.get("exercises", [])),
+        "trainings": len(STATE.get("trainings", [])),
+        "clubs": len(STATE.get("clubs", [])),
+        "pending": pending_total,
+        "pending_breakdown": {k: len(v) for k, v in pending.items() if isinstance(v, list)},
+    }
+
+
 class MockHandler(BaseHTTPRequestHandler):
     def _add_cors_headers(self):
         origin = self.headers.get("Origin", "*")
@@ -279,6 +292,8 @@ class MockHandler(BaseHTTPRequestHandler):
             self._send_json(STATE["roles"])
         elif parsed.path == "/api/pending":
             self._send_json(STATE["pending"])
+        elif parsed.path == "/api/stats":
+            self._send_json(_compute_stats())
         else:
             self._send_json({"error": "not found"}, status=404)
 
@@ -359,13 +374,7 @@ class MockHandler(BaseHTTPRequestHandler):
             self._send_json(
                 {
                     "status": "reset",
-                    "counts": {
-                        "exercises": len(state.get("exercises", [])),
-                        "trainings": len(state.get("trainings", [])),
-                        "pending": sum(
-                            len(v) for v in state.get("pending", {}).values() if isinstance(v, list)
-                        ),
-                    },
+                    "counts": _compute_stats(),
                     "path": DATA_PATH,
                 },
                 status=200,

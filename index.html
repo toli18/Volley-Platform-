@@ -556,11 +556,13 @@
           <button id="check-health" type="button" class="ghost-btn">Провери health</button>
           <button id="reset-data" type="button" class="ghost-btn">Рестартирай API данните</button>
           <button id="reset-api" type="button" class="ghost-btn">Изчисти / локален</button>
+          <button id="copy-share" type="button" class="ghost-btn">Копирай линк с роля/API</button>
         </div>
         <div class="demo-status-row">
           <span id="api-state" class="demo-status" aria-live="polite"></span>
           <span id="api-health" class="demo-status" aria-live="polite">Health: —</span>
           <span id="api-updated" class="demo-status" aria-live="polite">Последно обновяване: —</span>
+          <span id="api-stats" class="demo-status" aria-live="polite">Статистики: —</span>
           <span id="active-role-badge" class="demo-status" aria-live="polite" style="font-weight:700;">Роля: coach</span>
           <span id="offline-flag" class="demo-status" aria-live="polite"></span>
         </div>
@@ -1052,12 +1054,14 @@
     const apiHint = document.getElementById('api-hint');
     const apiHealth = document.getElementById('api-health');
     const apiUpdated = document.getElementById('api-updated');
+    const apiStats = document.getElementById('api-stats');
     const activeRoleBadge = document.getElementById('active-role-badge');
     const offlineFlag = document.getElementById('offline-flag');
     const resetDataBtn = document.getElementById('reset-data');
     const resetBtn = document.getElementById('reset-api');
     const btn = document.getElementById('load-data');
     const healthBtn = document.getElementById('check-health');
+    const copyShareBtn = document.getElementById('copy-share');
     const coachBetaStatus = document.getElementById('coachBetaStatus');
     const roleSelect = document.getElementById('role-select');
     const roleSource = document.getElementById('role-source');
@@ -1198,6 +1202,17 @@
       ],
     };
 
+    function localStats() {
+      return {
+        exercises: exerciseCache.length,
+        trainings: trainingCache.length,
+        clubs: clubCache.length,
+        pending: Object.values(pendingCache || {})
+          .filter((v) => Array.isArray(v))
+          .reduce((acc, arr) => acc + arr.length, 0),
+      };
+    }
+
     function populateCategories(items = []) {
       if (!exerciseCategory) return;
       const cats = new Set(['all']);
@@ -1225,6 +1240,20 @@
       const now = new Date();
       const time = now.toLocaleTimeString('bg-BG', { hour: '2-digit', minute: '2-digit' });
       apiUpdated.textContent = `Последно обновяване: ${time} • ${source}`;
+    }
+
+    function setStats(stats) {
+      if (!apiStats) return;
+      if (!stats) {
+        apiStats.textContent = 'Статистики: —';
+        return;
+      }
+      const parts = [];
+      if (typeof stats.exercises === 'number') parts.push(`Упр.: ${stats.exercises}`);
+      if (typeof stats.pending === 'number') parts.push(`Pending: ${stats.pending}`);
+      if (typeof stats.trainings === 'number') parts.push(`Трен.: ${stats.trainings}`);
+      if (typeof stats.clubs === 'number') parts.push(`Клубове: ${stats.clubs}`);
+      apiStats.textContent = `Статистики: ${parts.join(' · ')}`;
     }
 
     function setCoachBeta(message, color = '#0b2c3c', icon = 'ℹ️') {
@@ -1301,6 +1330,7 @@
         showToast('Данните в mock API са върнати към началните стойности', 'success');
         setCoachBeta('API рестартирано — готово за нов тест', '#166534', '✅');
         setUpdated(`reset @ ${base}`);
+        setStats(data?.counts || localStats());
         await loadFromApi();
       } catch (err) {
         console.error(err);
@@ -1314,6 +1344,9 @@
       activeRole = role || activeRole || 'coach';
       if (activeRoleBadge) {
         activeRoleBadge.textContent = `Роля: ${activeRole}`;
+        activeRoleBadge.style.color = ['bfv_admin', 'platform_admin'].includes(activeRole)
+          ? '#0f172a'
+          : '#2563eb';
       }
 
       const canPropose = ['coach', 'bfv_admin'].includes(activeRole);
@@ -1331,6 +1364,14 @@
           btn.title = canApprove ? '' : 'Само bfv_admin или platform_admin могат да одобряват';
         });
       }
+    }
+
+    function buildShareLink() {
+      const base = normalizeBase(apiInput?.value?.trim() || defaultApiBase);
+      const url = new URL(window.location.href);
+      url.searchParams.set('api', base);
+      url.searchParams.set('role', activeRole || 'coach');
+      return url.toString();
     }
 
     function renderRolePreview(roleName) {
@@ -1501,6 +1542,7 @@
         }
         applyExerciseFilters();
         applyPendingFilters();
+        setStats(localStats());
         setStatus(`Успешно ${action === 'approve' ? 'одобрение' : 'отказ'} чрез API`, '#166534');
         setUpdated(`API (${base})`);
         showToast('Действието е записано и списъците са обновени.', 'success');
@@ -1514,6 +1556,7 @@
         }
         applyExerciseFilters();
         applyPendingFilters();
+        setStats(localStats());
         setStatus(`API недостъпно — ${action} записано локално`, '#b91c1c');
         offlineChanges.push({ type: action, id });
         setOffline('Записано локално (offline change)');
@@ -1541,6 +1584,7 @@
         const item = data?.item || payload;
         pendingCache.exercises = [...(pendingCache.exercises || []), item];
         applyPendingFilters();
+        setStats(localStats());
         setStatus('Предложението е изпратено към API (pending).', '#166534');
         setUpdated(`API (${base})`);
         showToast('Предложението е записано в API.', 'success');
@@ -1549,6 +1593,7 @@
         const localItem = { id: Date.now(), name, category, proposed_by: 'coach.demo' };
         pendingCache.exercises = [...(pendingCache.exercises || []), localItem];
         applyPendingFilters();
+        setStats(localStats());
         setStatus('API недостъпно — предложението е в локалния pending списък.', '#b91c1c');
         offlineChanges.push({ type: 'propose', id: localItem.id });
         setOffline('Записано локално (offline change)');
@@ -1566,12 +1611,13 @@
 
       setStatus('Зареждане...');
       try {
-        const [exercises, trainings, clubs, pending, roles] = await Promise.all([
+        const [exercises, trainings, clubs, pending, roles, stats] = await Promise.all([
           fetch(`${base}/api/exercises`).then((r) => r.json()),
           fetch(`${base}/api/trainings`).then((r) => r.json()),
           fetch(`${base}/api/clubs`).then((r) => r.json()),
           fetch(`${base}/api/pending`).then((r) => r.json()),
           fetch(`${base}/api/roles`).then((r) => r.json()),
+          fetch(`${base}/api/stats`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
         ]);
 
         exerciseCache = Array.isArray(exercises) ? exercises : [];
@@ -1584,6 +1630,7 @@
         renderTrainings();
         applyClubFilters();
         applyPendingFilters();
+        setStats(stats || localStats());
 
         const rolesArr = Array.isArray(roles) ? roles : Object.values(roles || {});
         renderPills(
@@ -1613,6 +1660,7 @@
         await checkHealth(base);
         setStatus('Данните са заредени от API.');
         setUpdated(`API (${base})`);
+        setStats(stats || localStats());
         setCoachBeta('API активно — готово за споделяне с треньори', '#166534', '✅');
         setOffline('');
         offlineChanges = [];
@@ -1631,6 +1679,7 @@
         renderTrainings();
         applyClubFilters();
         applyPendingFilters();
+        setStats(localStats());
 
         renderPills(
           fallback.roles,
@@ -1653,6 +1702,7 @@
         setOffline('Използват се примерни данни (offline режим)');
         setHealth('offline', '#b91c1c');
         setUpdated('примерни данни (fallback)');
+        setStats(localStats());
       }
     }
 
@@ -1668,12 +1718,27 @@
       }
       setStatus('Полето е върнато към локалния адрес.', '#0ea5e9');
       setUpdated('изчистено — локален адрес');
+      setStats(localStats());
       setCoachBeta('Използвайте локален адрес или автодетект за споделяне', '#0b2c3c', 'ℹ️');
       setOffline('');
       offlineChanges = [];
       checkHealth(defaultApiBase);
     });
     healthBtn?.addEventListener('click', () => checkHealth(apiInput?.value));
+    copyShareBtn?.addEventListener('click', async () => {
+      try {
+        const shareUrl = buildShareLink();
+        if (navigator?.clipboard?.writeText) {
+          await navigator.clipboard.writeText(shareUrl);
+          showToast('Линкът е копиран (вкл. API и роля).', 'success');
+          setStatus('Линкът за споделяне е копиран.', '#166534');
+        } else {
+          throw new Error('no clipboard');
+        }
+      } catch (err) {
+        showToast('Копиране неуспешно — копирай ръчно URL от адрес бара.', 'error');
+      }
+    });
     roleSelect?.addEventListener('change', (e) => renderRolePreview(e.target.value));
     exerciseSearch?.addEventListener('input', applyExerciseFilters);
     exerciseStatus?.addEventListener('change', applyExerciseFilters);
