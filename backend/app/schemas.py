@@ -1,8 +1,13 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel, EmailStr
+from pydantic import ConfigDict
 from backend.app.models import UserRole
 
+
+# -------------------------
+# AUTH & USER
+# -------------------------
 
 class Token(BaseModel):
     access_token: str
@@ -30,14 +35,17 @@ class UserRead(UserBase):
     id: int
     created_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
+
+# -------------------------
+# EXERCISES
+# -------------------------
 
 class ExerciseBase(BaseModel):
     name: str
@@ -66,9 +74,12 @@ class ExerciseRead(ExerciseBase):
     approved_by_admin: Optional[int] = None
     created_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
+
+# -------------------------
+# EXERCISE SUGGESTIONS
+# -------------------------
 
 class ExerciseSuggestionCreate(BaseModel):
     name: str
@@ -83,9 +94,12 @@ class ExerciseSuggestionRead(BaseModel):
     submitted_by: int
     created_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
+
+# -------------------------
+# ARTICLES
+# -------------------------
 
 class ArticleBase(BaseModel):
     title: str
@@ -101,9 +115,12 @@ class ArticleRead(ArticleBase):
     status: str
     created_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
+
+# -------------------------
+# TRAININGS
+# -------------------------
 
 class TrainingExerciseCreate(BaseModel):
     exercise_id: int
@@ -130,5 +147,50 @@ class TrainingRead(BaseModel):
     total_duration_min: Optional[int]
     created_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
+
+
+# -------------------------
+# FORUM MODELS (NEW)
+# -------------------------
+
+class ForumCategorySchema(BaseModel):
+    id: int
+    name: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ForumTopicBaseSchema(BaseModel):
+    title: str
+    content: str
+    user_id: int
+
+
+class ForumTopicCreateSchema(ForumTopicBaseSchema):
+    category_id: int
+
+
+class ForumTopicSchema(ForumTopicBaseSchema):
+    id: int
+    category_id: int
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ForumPostBaseSchema(BaseModel):
+    content: str
+    user_id: int
+
+
+class ForumPostCreateSchema(ForumPostBaseSchema):
+    topic_id: int
+
+
+class ForumPostSchema(ForumPostBaseSchema):
+    id: int
+    topic_id: int
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
