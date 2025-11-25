@@ -95,7 +95,7 @@ Volley Platform — единна система за тренировки, уп�
 ## Хостване (тестване без локална среда)
 Статичният фронтенд (`index.html`) може да бъде качен на всеки статичен хостинг (GitHub Pages, Netlify, Vercel). Ако искате да ползвате и mock API-то, качете `prototype/mock_api.py` отделно на услуга, която позволява дълго работещ Python процес (например Render/Railway/Fly.io) и задайте публичния му URL в браузъра.
 
-**Бележка за зависимости:** проектът няма външни Python библиотеки; `requirements.txt` е празен (с коментари), за да не се чупят платформи като Render при `pip install -r requirements.txt`. Стартирайте директно `python prototype/mock_api.py` без допълнителни пакети.
+**Бележка за зависимости:** `requirements.txt` вече включва зависимостите за FastAPI бекенда и Alembic миграциите. За mock API-то няма нужда от външни пакети, но ако инсталирате всичко с `pip install -r requirements.txt`, ще получите и необходимите библиотеки за реалния бекенд.
 
 ### Бърз вариант: GitHub Pages (само статичния файл)
 1. Създайте публично хранилище и качете `index.html` (и по желание `README.md`).
@@ -178,3 +178,35 @@ python prototype/mock_api.py
 5. **Следващи стъпки**
    - Добавяне на реална аутентикация и авторизация по роли, soft-delete/archiving за упражнения/тренировки, и пълни одит логове.
    - Инкрементално мигриране на mock данните към таблиците (еднократно seed-ване + регулярни миграции при промени).
+
+## Backend API (FastAPI + PostgreSQL)
+A first cut of the real API now lives under `backend/` using FastAPI, SQLAlchemy, and Alembic with JWT auth. Roles are enforced (`platform_admin`, `bfv_admin`, `coach`) via the shared dependency layer.
+
+### Quickstart (local)
+1. Install dependencies: `pip install -r requirements.txt`.
+2. Start Postgres locally (or use Docker): `docker-compose up db`.
+3. Run the API: `uvicorn backend.app.main:app --reload`.
+4. Open http://localhost:8000/docs to exercise the endpoints.
+
+### Docker Compose
+* `docker-compose up` starts Postgres and the API together. The API reads `DATABASE_URL` and `JWT_SECRET` from environment variables (defaults are set in `docker-compose.yml`).
+
+### Database migrations
+* Alembic config lives in `backend/alembic.ini` with the first migration at `backend/app/migrations/versions/0001_initial.py`.
+* To run migrations manually: `alembic -c backend/alembic.ini upgrade head`.
+
+### Seeding data
+* Run `python backend/seed_data.py` after the database is up to create platform_admin, bfv_admin, the sample clubs/coaches, and a demo article.
+* If `/mnt/data/volleyball_exercises_normalized.xlsx` exists, it will be imported into the `exercises` table; if not present, seeding skips the Excel import.
+
+### Initial endpoints (MVP scope)
+* Auth: `/auth/login`, `/auth/me` (JWT bearer)
+* Clubs: create/list, add coaches (role-gated)
+* Exercises: list/create/approve, suggestions propose/approve
+* Trainings: create/list with exercise assignments
+* Articles: publish list/create and suggestion approval
+* Forum: categories → topics → posts (create/list)
+* Health: `/health`
+
+### Roadmap alignment
+This backend skeleton aligns with the codified plan: FastAPI + Postgres + JWT + RBAC, Alembic migrations, seed users/clubs, and room to grow toward the React frontend and deployment to Render.

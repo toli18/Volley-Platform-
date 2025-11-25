@@ -1,3 +1,9 @@
-# No external dependencies are required for the static wireframe or mock API.
-# This file is present to satisfy platforms that expect a requirements list
-# during deployment (e.g., Render, Netlify functions, Railway).
+fastapi==0.115.2
+uvicorn[standard]==0.30.3
+sqlalchemy==2.0.34
+alembic==1.13.3
+psycopg2-binary==2.9.9
+python-jose==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.9
+pandas==2.2.3
