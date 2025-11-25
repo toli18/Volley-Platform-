@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from backend.app.models import UserRole
 
@@ -174,7 +174,7 @@ class ForumPostSchema(BaseModel):
     created_by: int
     created_at: datetime
 
-    model_config = {"from_attributes": True}
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ForumTopicSchema(BaseModel):
@@ -185,7 +185,7 @@ class ForumTopicSchema(BaseModel):
     created_at: datetime
     posts: list[ForumPostSchema] | None = None
 
-    model_config = {"from_attributes": True}
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ForumCategorySchema(BaseModel):
@@ -194,4 +194,4 @@ class ForumCategorySchema(BaseModel):
     created_at: datetime
     topics: list[ForumTopicSchema] | None = None
 
-    model_config = {"from_attributes": True}
+    model_config = ConfigDict(from_attributes=True)
