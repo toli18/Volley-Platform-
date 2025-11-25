@@ -246,14 +246,28 @@ class MockHandler(BaseHTTPRequestHandler):
             return
 
         if parsed.path.startswith("/api/pending/exercises/"):
-            parts = parsed.path.rstrip("/").split("/")
-            try:
-                exercise_id = int(parts[-1])
-            except (TypeError, ValueError):
-                self._send_json({"error": "invalid id"}, status=400)
+            segments = [s for s in parsed.path.rstrip("/").split("/") if s]
+            action = None
+            exercise_id = None
+
+            # Support both /api/pending/exercises/<id>/<action> and /api/pending/exercises/<action>/<id>
+            if len(segments) >= 5 and segments[-1] in {"approve", "reject"}:
+                action = segments[-1]
+                try:
+                    exercise_id = int(segments[-2])
+                except (TypeError, ValueError):
+                    exercise_id = None
+            if action is None and len(segments) >= 5 and segments[-2] in {"approve", "reject"}:
+                action = segments[-2]
+                try:
+                    exercise_id = int(segments[-1])
+                except (TypeError, ValueError):
+                    exercise_id = None
+
+            if exercise_id is None or action not in {"approve", "reject"}:
+                self._send_json({"error": "invalid path"}, status=400)
                 return
 
-            action = parts[-2] if len(parts) >= 2 else None
             pending_list = MOCK_DATA.get("pending", {}).get("exercises", [])
             match = next((x for x in pending_list if x.get("id") == exercise_id), None)
             if not match:
@@ -262,14 +276,15 @@ class MockHandler(BaseHTTPRequestHandler):
 
             if action == "approve":
                 pending_list.remove(match)
+                payload = self._read_json_body()
                 new_ex = {
                     "id": match.get("id"),
                     "name": match.get("name"),
                     "category": match.get("category", "Общо"),
                     "status": "approved",
-                    "level": payload.get("level") if (payload := self._read_json_body()) else "",
+                    "level": (payload or {}).get("level", ""),
                     "proposed_by": match.get("proposed_by"),
-                    "approved_by": payload.get("approved_by") if payload else "bfv_admin.demo",
+                    "approved_by": (payload or {}).get("approved_by", "bfv_admin.demo"),
                 }
                 MOCK_DATA.setdefault("exercises", []).append(new_ex)
                 self._send_json({"status": "approved", "item": new_ex})
