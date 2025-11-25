@@ -1,0 +1,121 @@
+{
+  "exercises": [
+    {
+      "id": 1,
+      "name": "Пас с движение",
+      "status": "approved",
+      "category": "Подаване",
+      "level": "U14",
+      "proposed_by": "coach.petrov",
+      "approved_by": "bfv_admin.ivanova"
+    },
+    {
+      "id": 2,
+      "name": "Блок с пренасочване",
+      "status": "pending",
+      "category": "Блок",
+      "level": "U16",
+      "proposed_by": "coach.dimitrov",
+      "approved_by": null
+    },
+    {
+      "id": 3,
+      "name": "Сервис под напрежение",
+      "status": "draft",
+      "category": "Сервис",
+      "level": "U18",
+      "proposed_by": "bfv_admin.ivanova",
+      "approved_by": "platform_admin"
+    }
+  ],
+  "trainings": [
+    {
+      "id": 101,
+      "name": "U14 Техника + прием",
+      "status": "saved",
+      "duration": 75,
+      "owner": "club.sofia",
+      "created_by": "coach.petrov"
+    },
+    {
+      "id": 102,
+      "name": "U16 Генератор (авто)",
+      "status": "approved",
+      "duration": 90,
+      "owner": "club.plovdiv",
+      "created_by": "coach.dimitrov"
+    }
+  ],
+  "clubs": [
+    {
+      "id": "club-sofia",
+      "name": "Клуб София",
+      "status": "active",
+      "bfv_admin": "bfv_admin.ivanova",
+      "coaches": 3,
+      "coach_limit": 4
+    },
+    {
+      "id": "club-plovdiv",
+      "name": "Клуб Пловдив",
+      "status": "pending",
+      "bfv_admin": null,
+      "coaches": 1,
+      "coach_limit": 4
+    }
+  ],
+  "roles": [
+    {
+      "role": "platform_admin",
+      "can": [
+        "създава/одобрява клубове",
+        "назначава bfv_admin",
+        "одобрява официални упражнения",
+        "управлява методика, категории и форума"
+      ]
+    },
+    {
+      "role": "bfv_admin",
+      "can": [
+        "управлява треньори (до 4 на клуб)",
+        "одобрява предложени упражнения",
+        "публикува/редактира статии",
+        "модерира форум"
+      ]
+    },
+    {
+      "role": "coach",
+      "can": [
+        "разглежда база упражнения",
+        "генерира и запазва тренировки",
+        "предлага нови упражнения",
+        "пише във форума"
+      ]
+    }
+  ],
+  "pending": {
+    "exercises": [
+      {
+        "id": 2,
+        "name": "Блок с пренасочване",
+        "proposed_by": "coach.dimitrov",
+        "needs": "proof video"
+      }
+    ],
+    "articles": [
+      {
+        "id": 201,
+        "title": "Примерен фитнес протокол",
+        "proposed_by": "coach.petrov",
+        "needs": "review by bfv_admin"
+      }
+    ],
+    "forum_reports": [
+      {
+        "topic": "Тактика срещу висок блок",
+        "reported_by": "coach.nikolov",
+        "reason": "off-topic"
+      }
+    ]
+  }
+}
