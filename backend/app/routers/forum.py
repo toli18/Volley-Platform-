@@ -2,8 +2,8 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.dependencies import get_db_session, require_role, get_current_user
-from app.models import ForumCategory, ForumTopic, ForumPost, UserRole
+from backend.app.dependencies import get_db_session, require_role, get_current_user
+from backend.app.models import ForumCategory, ForumTopic, ForumPost, UserRole
 
 router = APIRouter(prefix="/forum", tags=["forum"])
 

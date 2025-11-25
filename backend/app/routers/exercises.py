@@ -2,9 +2,9 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.dependencies import get_db_session, require_role, get_current_user
-from app.models import Exercise, ExerciseSuggestion, User, UserRole
-from app.schemas import ExerciseCreate, ExerciseRead, ExerciseSuggestionCreate, ExerciseSuggestionRead
+from backend.app.dependencies import get_db_session, require_role, get_current_user
+from backend.app.models import Exercise, ExerciseSuggestion, User, UserRole
+from backend.app.schemas import ExerciseCreate, ExerciseRead, ExerciseSuggestionCreate, ExerciseSuggestionRead
 
 router = APIRouter(prefix="/exercises", tags=["exercises"])
 

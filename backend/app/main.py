@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import auth, clubs, exercises, trainings, articles, forum, health
+from backend.app.routers import auth, clubs, exercises, trainings, articles, forum, health
 
 app = FastAPI(title="Volley Platform API")
 

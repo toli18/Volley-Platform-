@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.dependencies import get_db_session, require_role
-from app.models import Club, User, UserRole
-from app.security import get_password_hash
+from backend.app.dependencies import get_db_session, require_role
+from backend.app.models import Club, User, UserRole
+from backend.app.security import get_password_hash
 
 router = APIRouter(prefix="/clubs", tags=["clubs"])
 

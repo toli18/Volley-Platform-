@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import List, Optional
 from pydantic import BaseModel, EmailStr
-from app.models import UserRole
+from backend.app.models import UserRole
 
 
 class Token(BaseModel):

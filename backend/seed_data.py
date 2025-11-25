@@ -4,9 +4,9 @@ import pandas as pd
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine
 
-from app.config import settings
-from app.models import Base, User, UserRole, Club, Exercise, Article
-from app.security import get_password_hash
+from backend.app.config import settings
+from backend.app.models import Base, User, UserRole, Club, Exercise, Article
+from backend.app.security import get_password_hash
 
 
 def ensure_database():
