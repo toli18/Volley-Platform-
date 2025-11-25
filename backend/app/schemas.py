@@ -43,15 +43,56 @@ class LoginRequestSchema(BaseModel):
     password: str
 
 
-class ClubSchema(BaseModel):
-    id: int
+class ClubBase(BaseModel):
     name: str
     city: Optional[str] = None
     logo_url: Optional[str] = None
+
+
+class ClubCreate(ClubBase):
+    pass
+
+
+class ClubUpdate(BaseModel):
+    name: Optional[str] = None
+    city: Optional[str] = None
+    logo_url: Optional[str] = None
+
+
+class ClubRead(ClubBase):
+    id: int
     created_at: datetime
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class CoachCreate(BaseModel):
+    email: EmailStr
+    name: str
+    password: Optional[str] = None
+
+
+class CoachUpdate(BaseModel):
+    email: Optional[EmailStr] = None
+    name: Optional[str] = None
+    password: Optional[str] = None
+
+
+class CoachRead(BaseModel):
+    id: int
+    email: EmailStr
+    name: str
+    role: UserRole
+    club_id: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class ClubDetail(ClubRead):
+    coaches: list[CoachRead] = Field(default_factory=list)
 
 
 class ExerciseBaseSchema(BaseModel):
