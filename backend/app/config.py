@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     app_name: str = "Volley Platform API"
     debug: bool = False
     database_url: str = Field(
-        default="postgresql://postgres:postgres@localhost:5432/volley_platform"
+        default="postgresql+psycopg://postgres:postgres@localhost:5432/volley_platform"
     )
     jwt_secret: str = Field(default="changeme-secret")
     jwt_algorithm: str = "HS256"
