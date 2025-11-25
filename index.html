@@ -554,6 +554,7 @@
         <div class="control-actions">
           <button id="load-data" type="button">Зареди данни</button>
           <button id="check-health" type="button" class="ghost-btn">Провери health</button>
+          <button id="reset-data" type="button" class="ghost-btn">Рестартирай API данните</button>
           <button id="reset-api" type="button" class="ghost-btn">Изчисти / локален</button>
         </div>
         <div class="demo-status-row">
@@ -563,6 +564,7 @@
           <span id="active-role-badge" class="demo-status" aria-live="polite" style="font-weight:700;">Роля: coach</span>
           <span id="offline-flag" class="demo-status" aria-live="polite"></span>
         </div>
+        <p class="demo-hint" style="margin:8px 0 0;">Промените от „Предложи/Одобри“ се пазят в <code>prototype/data.json</code> (можеш да ги върнеш с „Рестартирай API данните“).</p>
       </div>
       <div class="demo-grid">
         <div class="demo-block">
@@ -1052,6 +1054,7 @@
     const apiUpdated = document.getElementById('api-updated');
     const activeRoleBadge = document.getElementById('active-role-badge');
     const offlineFlag = document.getElementById('offline-flag');
+    const resetDataBtn = document.getElementById('reset-data');
     const resetBtn = document.getElementById('reset-api');
     const btn = document.getElementById('load-data');
     const healthBtn = document.getElementById('check-health');
@@ -1279,6 +1282,31 @@
         }
         setHealth('offline', '#b91c1c');
         return false;
+      }
+    }
+
+    async function resetServerData() {
+      const base = normalizeBase(apiInput?.value || defaultApiBase);
+      if (!base) return;
+      setStatus('Рестартирам данните в mock API...', '#0ea5e9');
+      try {
+        const res = await fetch(`${base}/api/reset`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data?.error || 'reset failed');
+        }
+        showToast('Данните в mock API са върнати към началните стойности', 'success');
+        setCoachBeta('API рестартирано — готово за нов тест', '#166534', '✅');
+        setUpdated(`reset @ ${base}`);
+        await loadFromApi();
+      } catch (err) {
+        console.error(err);
+        setStatus('Reset неуспешен — проверете health или URL', '#b91c1c');
+        setCoachBeta('Reset неуспешен — пробвайте health check или fallback', '#b91c1c', '⚠️');
+        showToast('Неуспешно рестартиране на API данните', 'error');
       }
     }
 
@@ -1629,6 +1657,7 @@
     }
 
     btn?.addEventListener('click', loadFromApi);
+    resetDataBtn?.addEventListener('click', resetServerData);
     resetBtn?.addEventListener('click', () => {
       clearStoredBase();
       if (apiInput) {

@@ -7,7 +7,7 @@ import json
 import os
 from urllib.parse import urlparse
 
-MOCK_DATA = {
+DEFAULT_DATA = {
     "exercises": [
         {
             "id": 1,
@@ -140,16 +140,72 @@ API_INTRO = {
         "POST /api/pending/exercises",
         "POST /api/pending/exercises/<id>/approve",
         "POST /api/pending/exercises/<id>/reject",
+        "POST /api/reset",
         "/health",
     ],
 }
 
 
+DATA_PATH = os.environ.get(
+    "MOCK_DATA_PATH", os.path.join(os.path.dirname(__file__), "data.json")
+)
+
+
+def _deepcopy_data(data):
+    return json.loads(json.dumps(data))
+
+
+def _merge_state(defaults, incoming):
+    """Merge incoming data over defaults while keeping expected keys."""
+
+    merged = _deepcopy_data(defaults)
+    if not isinstance(incoming, dict):
+        return merged
+
+    for key, value in incoming.items():
+        if isinstance(merged.get(key), dict) and isinstance(value, dict):
+            merged[key] = {**merged[key], **value}
+        else:
+            merged[key] = value
+    return merged
+
+
+def _load_state():
+    base = _deepcopy_data(DEFAULT_DATA)
+    if os.path.isfile(DATA_PATH):
+        try:
+            with open(DATA_PATH, "r", encoding="utf-8") as f:
+                loaded = json.load(f)
+                base = _merge_state(base, loaded)
+        except Exception as exc:  # pragma: no cover - defensive
+            print(f"Failed to load data from {DATA_PATH}: {exc}")
+    return base
+
+
+STATE = _load_state()
+
+
+def _persist_state():
+    try:
+        os.makedirs(os.path.dirname(DATA_PATH), exist_ok=True)
+        with open(DATA_PATH, "w", encoding="utf-8") as f:
+            json.dump(STATE, f, ensure_ascii=False, indent=2)
+    except Exception as exc:  # pragma: no cover - defensive
+        print(f"Could not persist data to {DATA_PATH}: {exc}")
+
+
+def _reset_state():
+    global STATE
+    STATE = _deepcopy_data(DEFAULT_DATA)
+    _persist_state()
+    return STATE
+
+
 def _next_exercise_id():
     """Return the next available exercise id across exercises and pending."""
 
-    existing_ids = [e.get("id", 0) for e in MOCK_DATA.get("exercises", [])]
-    existing_ids += [e.get("id", 0) for e in MOCK_DATA.get("pending", {}).get("exercises", [])]
+    existing_ids = [e.get("id", 0) for e in STATE.get("exercises", [])]
+    existing_ids += [e.get("id", 0) for e in STATE.get("pending", {}).get("exercises", [])]
     return (max(existing_ids) if existing_ids else 0) + 1
 
 
@@ -214,15 +270,15 @@ class MockHandler(BaseHTTPRequestHandler):
         elif parsed.path == "/health":
             self._send_json({"status": "ok"})
         elif parsed.path == "/api/exercises":
-            self._send_json(MOCK_DATA["exercises"])
+            self._send_json(STATE["exercises"])
         elif parsed.path == "/api/trainings":
-            self._send_json(MOCK_DATA["trainings"])
+            self._send_json(STATE["trainings"])
         elif parsed.path == "/api/clubs":
-            self._send_json(MOCK_DATA["clubs"])
+            self._send_json(STATE["clubs"])
         elif parsed.path == "/api/roles":
-            self._send_json(MOCK_DATA["roles"])
+            self._send_json(STATE["roles"])
         elif parsed.path == "/api/pending":
-            self._send_json(MOCK_DATA["pending"])
+            self._send_json(STATE["pending"])
         else:
             self._send_json({"error": "not found"}, status=404)
 
@@ -241,7 +297,8 @@ class MockHandler(BaseHTTPRequestHandler):
                 "proposed_by": proposed_by,
                 "needs": payload.get("needs") or "review",
             }
-            MOCK_DATA.setdefault("pending", {}).setdefault("exercises", []).append(new_item)
+            STATE.setdefault("pending", {}).setdefault("exercises", []).append(new_item)
+            _persist_state()
             self._send_json({"status": "queued", "item": new_item}, status=201)
             return
 
@@ -268,7 +325,7 @@ class MockHandler(BaseHTTPRequestHandler):
                 self._send_json({"error": "invalid path"}, status=400)
                 return
 
-            pending_list = MOCK_DATA.get("pending", {}).get("exercises", [])
+            pending_list = STATE.get("pending", {}).get("exercises", [])
             match = next((x for x in pending_list if x.get("id") == exercise_id), None)
             if not match:
                 self._send_json({"error": "not found"}, status=404)
@@ -286,14 +343,34 @@ class MockHandler(BaseHTTPRequestHandler):
                     "proposed_by": match.get("proposed_by"),
                     "approved_by": (payload or {}).get("approved_by", "bfv_admin.demo"),
                 }
-                MOCK_DATA.setdefault("exercises", []).append(new_ex)
+                STATE.setdefault("exercises", []).append(new_ex)
+                _persist_state()
                 self._send_json({"status": "approved", "item": new_ex})
                 return
 
             if action == "reject":
                 pending_list.remove(match)
+                _persist_state()
                 self._send_json({"status": "rejected", "removed": match})
                 return
+
+        if parsed.path == "/api/reset":
+            state = _reset_state()
+            self._send_json(
+                {
+                    "status": "reset",
+                    "counts": {
+                        "exercises": len(state.get("exercises", [])),
+                        "trainings": len(state.get("trainings", [])),
+                        "pending": sum(
+                            len(v) for v in state.get("pending", {}).values() if isinstance(v, list)
+                        ),
+                    },
+                    "path": DATA_PATH,
+                },
+                status=200,
+            )
+            return
 
         self._send_json({"error": "not found"}, status=404)
 
@@ -307,7 +384,9 @@ def run_server(host="0.0.0.0", port=None):
     effective_port = int(port or os.environ.get("PORT", 8001))
     server = HTTPServer((host, effective_port), MockHandler)
     print(f"Mock API server running on http://{host}:{effective_port}")
-    print("Endpoints: /api/exercises, /api/trainings, /api/clubs, /api/roles, /api/pending")
+    print(
+        "Endpoints: /api/exercises, /api/trainings, /api/clubs, /api/roles, /api/pending, /api/reset"
+    )
     try:
         server.serve_forever()
     except KeyboardInterrupt:
