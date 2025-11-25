@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: volley-platform-frontend
+    env: node
+    plan: starter
+    region: frankfurt
+    buildCommand: "npm install && npm run build"
+    startCommand: "npm run start"
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        value: https://volley-platform.onrender.com
+    buildFilter:
+      paths:
+        - frontend/**
+    autoDeploy: true
+    rootDir: frontend
