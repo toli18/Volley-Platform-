@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime
 from typing import List, Optional
 
@@ -165,9 +167,11 @@ class TrainingReadSchema(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class ForumCategorySchema(BaseModel):
+class ForumPostSchema(BaseModel):
     id: int
-    title: str
+    topic_id: int
+    content: str
+    created_by: int
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -179,15 +183,15 @@ class ForumTopicSchema(BaseModel):
     title: str
     created_by: int
     created_at: datetime
+    posts: list[ForumPostSchema] | None = None
 
     model_config = {"from_attributes": True}
 
 
-class ForumPostSchema(BaseModel):
+class ForumCategorySchema(BaseModel):
     id: int
-    topic_id: int
-    content: str
-    created_by: int
+    title: str
     created_at: datetime
+    topics: list[ForumTopicSchema] | None = None
 
     model_config = {"from_attributes": True}
