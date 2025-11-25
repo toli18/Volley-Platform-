@@ -1,78 +1,79 @@
-from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from typing import List
 
-from backend.app.dependencies import get_db_session, require_role, get_current_user
-from backend.app.models import ForumCategory, ForumTopic, ForumPost, UserRole
+from backend.app.database import get_db
+from backend.app import models
+from backend.app.schemas import (
+    ForumCategorySchema,
+    ForumTopicSchema,
+    ForumTopicCreateSchema,
+    ForumPostSchema,
+    ForumPostCreateSchema,
+)
 
 router = APIRouter(prefix="/forum", tags=["forum"])
 
 
-@router.get("/categories", response_model=List[ForumCategory])
-def list_categories(db: Session = Depends(get_db_session)):
-    return db.query(ForumCategory).all()
+@router.get("/categories", response_model=List[ForumCategorySchema])
+def get_categories(db: Session = Depends(get_db)):
+    categories = db.query(models.ForumCategory).all()
+    return categories
 
 
-@router.post(
-    "/categories",
-    response_model=ForumCategory,
-    dependencies=[Depends(require_role(UserRole.platform_admin, UserRole.bfv_admin))],
-)
-def create_category(payload: dict, db: Session = Depends(get_db_session)):
-    title = payload.get("title")
-    if not title:
-        raise HTTPException(status_code=400, detail="title is required")
-    category = ForumCategory(title=title)
-    db.add(category)
-    db.commit()
-    db.refresh(category)
-    return category
+@router.get("/categories/{category_id}/topics", response_model=List[ForumTopicSchema])
+def get_topics(category_id: int, db: Session = Depends(get_db)):
+    topics = (
+        db.query(models.ForumTopic)
+        .filter(models.ForumTopic.category_id == category_id)
+        .order_by(models.ForumTopic.created_at.desc())
+        .all()
+    )
+    return topics
 
 
-@router.get("/categories/{category_id}/topics", response_model=List[ForumTopic])
-def list_topics(category_id: int, db: Session = Depends(get_db_session)):
-    return db.query(ForumTopic).filter(ForumTopic.category_id == category_id).all()
+@router.post("/categories/{category_id}/topics", response_model=ForumTopicSchema)
+def create_topic(category_id: int, topic_data: ForumTopicCreateSchema, db: Session = Depends(get_db)):
+    category = db.query(models.ForumCategory).filter_by(id=category_id).first()
+    if not category:
+        raise HTTPException(status_code=404, detail="Category not found")
 
+    topic = models.ForumTopic(
+        title=topic_data.title,
+        content=topic_data.content,
+        user_id=topic_data.user_id,
+        category_id=category_id,
+    )
 
-@router.post(
-    "/categories/{category_id}/topics",
-    response_model=ForumTopic,
-    dependencies=[Depends(require_role(UserRole.coach, UserRole.bfv_admin, UserRole.platform_admin))],
-)
-def create_topic(category_id: int, payload: dict, db: Session = Depends(get_db_session), user=Depends(get_current_user)):
-    title = payload.get("title")
-    if not title:
-        raise HTTPException(status_code=400, detail="title is required")
-    topic = ForumTopic(category_id=category_id, title=title, created_by=user.id)
     db.add(topic)
     db.commit()
     db.refresh(topic)
     return topic
 
 
-@router.get("/topics/{topic_id}", response_model=ForumTopic)
-def get_topic(topic_id: int, db: Session = Depends(get_db_session)):
-    topic = db.query(ForumTopic).filter(ForumTopic.id == topic_id).first()
+@router.get("/topics/{topic_id}/posts", response_model=List[ForumPostSchema])
+def get_posts(topic_id: int, db: Session = Depends(get_db)):
+    posts = (
+        db.query(models.ForumPost)
+        .filter(models.ForumPost.topic_id == topic_id)
+        .order_by(models.ForumPost.created_at.asc())
+        .all()
+    )
+    return posts
+
+
+@router.post("/topics/{topic_id}/posts", response_model=ForumPostSchema)
+def create_post(topic_id: int, post_data: ForumPostCreateSchema, db: Session = Depends(get_db)):
+    topic = db.query(models.ForumTopic).filter_by(id=topic_id).first()
     if not topic:
         raise HTTPException(status_code=404, detail="Topic not found")
-    return topic
 
+    post = models.ForumPost(
+        content=post_data.content,
+        user_id=post_data.user_id,
+        topic_id=topic_id,
+    )
 
-@router.get("/topics/{topic_id}/posts", response_model=List[ForumPost])
-def list_posts(topic_id: int, db: Session = Depends(get_db_session)):
-    return db.query(ForumPost).filter(ForumPost.topic_id == topic_id).all()
-
-
-@router.post(
-    "/topics/{topic_id}/posts",
-    response_model=ForumPost,
-    dependencies=[Depends(require_role(UserRole.coach, UserRole.bfv_admin, UserRole.platform_admin))],
-)
-def create_post(topic_id: int, payload: dict, db: Session = Depends(get_db_session), user=Depends(get_current_user)):
-    content = payload.get("content")
-    if not content:
-        raise HTTPException(status_code=400, detail="content is required")
-    post = ForumPost(topic_id=topic_id, content=content, created_by=user.id)
     db.add(post)
     db.commit()
     db.refresh(post)
