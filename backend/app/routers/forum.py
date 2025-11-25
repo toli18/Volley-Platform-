@@ -7,7 +7,6 @@ from backend.app.models import ForumCategory, ForumTopic, ForumPost, UserRole
 from backend.app.schemas import (
     ForumCategorySchema,
     ForumPostSchema,
-    ForumThreadSchema,
     ForumTopicSchema,
 )
 
