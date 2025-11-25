@@ -195,6 +195,25 @@ class TrainingCreateSchema(BaseModel):
     exercises: List[TrainingExerciseCreateSchema] = Field(default_factory=list)
 
 
+class TrainingUpdateSchema(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    age_group: Optional[str] = None
+    total_duration_min: Optional[int] = None
+    exercises: Optional[List[TrainingExerciseCreateSchema]] = None
+
+
+class TrainingExerciseReadSchema(BaseModel):
+    training_id: int
+    exercise_id: int
+    order_index: int
+    custom_duration_min: Optional[int] = None
+    notes: Optional[str] = None
+    exercise: Optional[ExerciseReadSchema] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class TrainingReadSchema(BaseModel):
     id: int
     club_id: int
@@ -204,6 +223,7 @@ class TrainingReadSchema(BaseModel):
     age_group: Optional[str]
     total_duration_min: Optional[int]
     created_at: datetime
+    exercises: List[TrainingExerciseReadSchema] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
 
