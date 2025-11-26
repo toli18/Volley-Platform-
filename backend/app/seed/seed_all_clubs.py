@@ -1,7 +1,8 @@
-from backend.app.database import SessionLocal
-from backend.app import models
-from backend.app.security import get_password_hash
 from sqlalchemy.orm import Session
+
+from backend.app import models
+from backend.app.database import SessionLocal
+from backend.app.security import get_password_hash
 
 CLUBS = [
     "ЦПВК",
@@ -143,9 +144,7 @@ CLUBS = [
 ]
 
 
-def run():
-    db: Session = SessionLocal()
-
+def seed_all_clubs(db: Session) -> None:
     for club_name in CLUBS:
         c = db.query(models.Club).filter(models.Club.name == club_name).first()
         if not c:
@@ -165,10 +164,18 @@ def run():
                 name=f"Треньор {i} - {club_name}",
                 role=models.UserRole.coach,
                 club_id=c.id,
-                hashed_password=get_password_hash("123456"),
+                password_hash=get_password_hash("123456"),
             )
             db.add(coach)
         db.commit()
+
+
+def run() -> None:
+    db: Session = SessionLocal()
+    try:
+        seed_all_clubs(db)
+    finally:
+        db.close()
 
 
 if __name__ == "__main__":

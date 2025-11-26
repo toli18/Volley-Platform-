@@ -9,6 +9,8 @@ services:
     envVars:
       - key: NEXT_PUBLIC_API_URL
         value: https://volley-platform.onrender.com
+      - key: RUN_SEED
+        value: "python backend/run_seed.py"
     buildFilter:
       paths:
         - frontend/**
