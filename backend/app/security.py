@@ -5,8 +5,6 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from backend.app.config import settings
-from backend.app.models import User
-from sqlalchemy.orm import Session
 
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -50,30 +48,3 @@ def decode_token(token: str) -> Optional[str]:
 
     except JWTError:
         return None
-
-
-# -----------------------------------------
-# NEW – REQUIRED BY CODEX AUTH ROUTER
-# -----------------------------------------
-
-def authenticate_user(db: Session, username: str, password: str) -> Optional[User]:
-    """
-    Validate username & password against DB.
-    Returns the User object if valid, otherwise None.
-    """
-    user = db.query(User).filter(User.email == username).first()
-    if not user:
-        return None
-
-    if not verify_password(password, user.password_hash):
-        return None
-
-    return user
-
-
-def create_access_token(data: dict) -> str:
-    """
-    Wrapper used by auth router. Always returns a JWT for 60 minutes.
-    """
-    subject = data.get("sub")
-    return create_token(subject, expires_minutes=60)
