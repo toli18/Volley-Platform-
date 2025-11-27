@@ -1,38 +1,61 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Optional
+
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
 from backend.app.database import get_db
-from backend.app.core.auth import authenticate_user, create_access_token
-from backend.app.schemas import LoginRequest, Token, UserRead
-from backend.app.dependencies import get_current_user
-
-router = APIRouter(prefix="/auth", tags=["auth"])
+from backend.app.models import User
+from backend.app.security import verify_password, create_token, decode_token
+from backend.app.config import settings
 
 
-@router.post("/login", response_model=Token)
-def login(credentials: LoginRequest, db: Session = Depends(get_db)):
-    """
-    Login endpoint using email + password.
-    Returns JWT access token.
-    """
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
-    # FIX: use credentials.email instead of credentials.username
-    user = authenticate_user(db, credentials.email, credentials.password)
+
+# --------------------------
+# AUTHENTICATE USER
+# --------------------------
+
+def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        return None
+    if not verify_password(password, user.password_hash):
+        return None
+    return user
+
+
+# --------------------------
+# CREATE ACCESS TOKEN
+# --------------------------
+
+def create_access_token(email: str) -> str:
+    return create_token(email, expires_minutes=settings.access_token_expires_minutes)
+
+
+# --------------------------
+# CURRENT USER
+# --------------------------
+
+def get_current_user(
+    db: Session = Depends(get_db),
+    token: str = Depends(oauth2_scheme)
+) -> User:
+    email = decode_token(token)
+
+    if email is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials"
+        )
+
+    user = db.query(User).filter(User.email == email).first()
 
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password"
+            detail="User not found"
         )
 
-    access_token = create_access_token({"sub": user.email})
-
-    return Token(access_token=access_token, token_type="bearer")
-
-
-@router.get("/me", response_model=UserRead)
-def me(current_user: UserRead = Depends(get_current_user)):
-    """
-    Returns the currently authenticated user based on JWT token.
-    """
-    return current_user
+    return user
