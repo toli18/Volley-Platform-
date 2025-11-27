@@ -1,21 +1,38 @@
-from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from backend.app.models import User
-from backend.app.security import verify_password, create_access_token as _create_access_token, decode_token
 from backend.app.database import get_db
+from backend.app.core.auth import authenticate_user, create_access_token
+from backend.app.schemas import LoginRequest, Token, UserRead
+from backend.app.dependencies import get_current_user
+
+router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-def authenticate_user(db: Session, username: str, password: str) -> Optional[User]:
-    """Validate username+password and return user or None."""
-    user = db.query(User).filter(User.email == username).first()
+@router.post("/login", response_model=Token)
+def login(credentials: LoginRequest, db: Session = Depends(get_db)):
+    """
+    Login endpoint using email + password.
+    Returns JWT access token.
+    """
+
+    # FIX: use credentials.email instead of credentials.username
+    user = authenticate_user(db, credentials.email, credentials.password)
+
     if not user:
-        return None
-    if not verify_password(password, user.password):
-        return None
-    return user
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password"
+        )
+
+    access_token = create_access_token({"sub": user.email})
+
+    return Token(access_token=access_token, token_type="bearer")
 
 
-def create_access_token(data: dict) -> str:
-    """Wrapper for security.create_access_token"""
-    return _create_access_token(data)
+@router.get("/me", response_model=UserRead)
+def me(current_user: UserRead = Depends(get_current_user)):
+    """
+    Returns the currently authenticated user based on JWT token.
+    """
+    return current_user
