@@ -1,12 +1,20 @@
 from datetime import datetime, timedelta
 from typing import Optional
+
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from backend.app.config import settings
+from backend.app.models import User
+from sqlalchemy.orm import Session
 
+# Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+
+# -----------------------------------------
+# PASSWORD HELPERS
+# -----------------------------------------
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
@@ -16,15 +24,56 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
+# -----------------------------------------
+# JWT TOKEN HELPERS
+# -----------------------------------------
+
 def create_token(subject: str, expires_minutes: int) -> str:
     expire = datetime.utcnow() + timedelta(minutes=expires_minutes)
     to_encode = {"sub": subject, "exp": expire}
-    return jwt.encode(to_encode, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+
+    return jwt.encode(
+        to_encode,
+        settings.jwt_secret,
+        algorithm=settings.jwt_algorithm
+    )
 
 
 def decode_token(token: str) -> Optional[str]:
     try:
-        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+        payload = jwt.decode(
+            token,
+            settings.jwt_secret,
+            algorithms=[settings.jwt_algorithm]
+        )
         return payload.get("sub")
+
     except JWTError:
         return None
+
+
+# -----------------------------------------
+# NEW – REQUIRED BY CODEX AUTH ROUTER
+# -----------------------------------------
+
+def authenticate_user(db: Session, username: str, password: str) -> Optional[User]:
+    """
+    Validate username & password against DB.
+    Returns the User object if valid, otherwise None.
+    """
+    user = db.query(User).filter(User.email == username).first()
+    if not user:
+        return None
+
+    if not verify_password(password, user.password_hash):
+        return None
+
+    return user
+
+
+def create_access_token(data: dict) -> str:
+    """
+    Wrapper used by auth router. Always returns a JWT for 60 minutes.
+    """
+    subject = data.get("sub")
+    return create_token(subject, expires_minutes=60)
