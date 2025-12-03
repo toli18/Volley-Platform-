@@ -2,8 +2,21 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.app.routers import auth, clubs, exercises, trainings, articles, forum, health
+from backend.app.init_db import init_db
 
 app = FastAPI(title="Volley Platform API")
+
+# ... CORS middleware и include_router-ите, както си ги имаш ...
+
+
+@app.on_event("startup")
+def on_startup() -> None:
+    """
+    Тази функция се изпълнява всеки път,
+    когато Uvicorn стартира приложението.
+    """
+    init_db()
+
 
 app.add_middleware(
     CORSMiddleware,
