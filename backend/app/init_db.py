@@ -7,7 +7,7 @@ from alembic.config import Config
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
-from .database import SessionLocal
+from .database import Base, SessionLocal, engine
 from .models import Club
 from .settings import settings
 
@@ -17,6 +17,7 @@ SEED_DIR = Path(__file__).parent / "seed"
 def init_db() -> None:
     """Apply migrations and seed data if necessary."""
     run_migrations()
+    Base.metadata.create_all(bind=engine)
     seed_clubs()
 
 
