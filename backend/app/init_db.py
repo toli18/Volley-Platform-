@@ -1,13 +1,15 @@
-from sqlalchemy.orm import Session
-from backend.app.database import Base, engine, SessionLocal
-from backend.app.seed.clubs import seed_clubs
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
+from backend.app.settings import settings
 
-def init_db():
-    Base.metadata.create_all(bind=engine)
+DATABASE_URL = settings.database_url
 
-    db: Session = SessionLocal()
-    try:
-        seed_clubs(db)
-    finally:
-        db.close()
+engine = create_engine(DATABASE_URL)
 
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine
+)
+
+Base = declarative_base()
