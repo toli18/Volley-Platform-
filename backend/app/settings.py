@@ -1,17 +1,28 @@
-from pathlib import Path
-from pydantic_settings import BaseSettings
-
+from functools import lru_cache
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field
 
 class Settings(BaseSettings):
-    """Application configuration."""
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
-    database_url: str = "postgresql+psycopg://user:password@localhost:5432/postgres"
-    alembic_ini_path: Path = Path(__file__).resolve().parents[2] / "alembic.ini"
+    app_name: str = "Volley Platform API"
+    debug: bool = False
 
-    class Config:
-        env_file = ".env"
-        env_prefix = ""
-        extra = "ignore"
+    # ТУК Е ПРОБЛЕМЪТ → сменяме psycopg2 → psycopg
+    database_url: str = Field(
+        default="postgresql+psycopg://postgres:postgres@localhost:5432/volley_platform"
+    )
+
+    jwt_secret: str = Field(default="changeme-secret")
+    jwt_algorithm: str = "HS256"
+    access_token_expires_minutes: int = 60
+    refresh_token_expires_minutes: int = 60 * 24 * 7
+    storage_path: str = "./storage"
 
 
-settings = Settings()
+@lru_cache(maxsize=1)
+def get_settings() -> Settings:
+    return Settings()
+
+
+settings = get_settings()
