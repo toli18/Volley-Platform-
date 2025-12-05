@@ -2,16 +2,15 @@ from functools import lru_cache
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     app_name: str = "Volley Platform API"
     debug: bool = False
 
-    # ТУК Е ПРОБЛЕМЪТ → сменяме psycopg2 → psycopg
-    database_url: str = Field(
-        default="postgresql+psycopg://postgres:postgres@localhost:5432/volley_platform"
-    )
+    # ⚠️ НЯМА default → ENV DATABASE_URL се зарежда правилно
+    database_url: str = Field(...)
 
     jwt_secret: str = Field(default="changeme-secret")
     jwt_algorithm: str = "HS256"
