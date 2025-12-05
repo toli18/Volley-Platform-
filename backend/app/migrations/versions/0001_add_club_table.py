@@ -1,29 +1,25 @@
-"""add club table"""
+from datetime import datetime
 
-from alembic import op
-import sqlalchemy as sa
+from sqlalchemy import Column, DateTime, Integer, String
+from sqlalchemy.orm import relationship
 
-revision = "0001_add_club_table"
-down_revision = None
-branch_labels = None
-depends_on = None
+from backend.app.database import Base
 
 
-def upgrade():
-    op.create_table(
-        "clubs",
-        sa.Column("id", sa.Integer, primary_key=True),
-        sa.Column("name", sa.String(255), nullable=False),
-        sa.Column("city", sa.String(255)),
-        sa.Column("address", sa.String(255)),
-        sa.Column("contact_email", sa.String(255)),
-        sa.Column("contact_phone", sa.String(255)),
-        sa.Column("website_url", sa.String(255)),
-        sa.Column("logo_url", sa.String(512)),
-        sa.Column("created_at", sa.DateTime),
-        sa.Column("updated_at", sa.DateTime),
-    )
+class Club(Base):
+    __tablename__ = "clubs"
 
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), unique=True, nullable=False)
+    city = Column(String(255))
+    address = Column(String(255))
+    contact_email = Column(String(255))
+    contact_phone = Column(String(255))
+    website_url = Column(String(255))
+    logo_url = Column(String(512))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-def downgrade():
-    op.drop_table("clubs")
+    coaches = relationship("User", back_populates="club")
+    trainings = relationship("Training", back_populates="club")
+
