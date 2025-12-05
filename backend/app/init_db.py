@@ -1,15 +1,18 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
-from backend.app.settings import settings
+from sqlalchemy.exc import OperationalError
+from backend.app.database import Base, engine
+from backend.app.seed.database import seed_clubs
 
-DATABASE_URL = settings.database_url
 
-engine = create_engine(DATABASE_URL)
+def init_db() -> None:
+    """
+    Initialize database tables and seed initial data.
+    """
+    # Create tables
+    try:
+        Base.metadata.create_all(bind=engine)
+    except OperationalError as e:
+        print("Database connection failed:", e)
+        return
 
-SessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=engine
-)
-
-Base = declarative_base()
+    # Seed initial data
+    seed_clubs()
