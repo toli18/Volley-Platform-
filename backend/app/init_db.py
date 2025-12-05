@@ -1,6 +1,6 @@
 from sqlalchemy.exc import OperationalError
 from backend.app.database import Base, engine
-from backend.app.seed.seed_clubs import seed_clubs
+from backend.app.seed.database import seed_clubs
 
 
 def init_db() -> None:
