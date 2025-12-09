@@ -1,3 +1,10 @@
+import os
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parents[3]
+alembic_ini_path = BASE_DIR / "alembic.ini"
+config.config_file_name = str(alembic_ini_path)
+
 from logging.config import fileConfig
 from pathlib import Path
 import sys
