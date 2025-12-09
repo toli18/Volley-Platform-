@@ -1,25 +1,33 @@
-from datetime import datetime
+"""Add clubs table"""
 
-from sqlalchemy import Column, DateTime, Integer, String
-from sqlalchemy.orm import relationship
+import sqlalchemy as sa
+from alembic import op
 
-from backend.app.database import Base
+# revision identifiers, used by Alembic.
+revision = "0001_add_club_table"
+down_revision = None
+branch_labels = None
+depends_on = None
 
 
-class Club(Base):
-    __tablename__ = "clubs"
+def upgrade() -> None:
+    op.create_table(
+        "clubs",
+        sa.Column("id", sa.Integer(), primary_key=True),
+        sa.Column("name", sa.String(length=255), nullable=False, unique=True),
+        sa.Column("city", sa.String(length=255), nullable=True),
+        sa.Column("country", sa.String(length=255), nullable=True),
+        sa.Column("address", sa.String(length=255), nullable=True),
+        sa.Column("contact_email", sa.String(length=255), nullable=True),
+        sa.Column("contact_phone", sa.String(length=255), nullable=True),
+        sa.Column("website_url", sa.String(length=255), nullable=True),
+        sa.Column("logo_url", sa.String(length=512), nullable=True),
+        sa.Column("created_at", sa.DateTime(), server_default=sa.func.now(), nullable=True),
+        sa.Column("updated_at", sa.DateTime(), server_default=sa.func.now(), onupdate=sa.func.now(), nullable=True),
+    )
+    op.create_index("ix_clubs_id", "clubs", ["id"])
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(255), unique=True, nullable=False)
-    city = Column(String(255))
-    address = Column(String(255))
-    contact_email = Column(String(255))
-    contact_phone = Column(String(255))
-    website_url = Column(String(255))
-    logo_url = Column(String(512))
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    coaches = relationship("User", back_populates="club")
-    trainings = relationship("Training", back_populates="club")
-
+def downgrade() -> None:
+    op.drop_index("ix_clubs_id", table_name="clubs")
+    op.drop_table("clubs")

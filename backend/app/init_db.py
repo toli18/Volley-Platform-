@@ -1,10 +1,13 @@
-from pathlib import Path
+import os
 
 from alembic import command
 from alembic.config import Config
-from sqlalchemy.exc import OperationalError
+from sqlalchemy import select
+from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
-from backend.app.database import Base, engine
+from backend.app.auth import get_password_hash
+from backend.app.database import Base, SessionLocal, engine
+from backend.app.models import User, UserRole
 from backend.app.seed import seed_clubs
 from backend.app.settings import settings
 
@@ -15,6 +18,39 @@ def run_migrations() -> None:
     alembic_cfg.set_main_option("script_location", str(settings.migrations_path))
     alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)
     command.upgrade(alembic_cfg, "head")
+
+
+def seed_platform_admin() -> None:
+    session = SessionLocal()
+
+    try:
+        existing_admin = session.execute(
+            select(User).where(User.role == UserRole.PLATFORM_ADMIN)
+        ).scalar_one_or_none()
+
+        if existing_admin:
+            print("ℹ️ Platform admin already exists.")
+            return
+
+        email = os.getenv("ADMIN_EMAIL", "admin@example.com")
+        password = os.getenv("ADMIN_PASSWORD", "changeme123")
+
+        admin_user = User(
+            email=email,
+            password_hash=get_password_hash(password),
+            name="Platform Admin",
+            role=UserRole.PLATFORM_ADMIN,
+            club_id=None,
+        )
+
+        session.add(admin_user)
+        session.commit()
+        print(f"✅ Created platform admin user {email}.")
+    except SQLAlchemyError as exc:
+        session.rollback()
+        print("❌ Failed to seed admin user:", exc)
+    finally:
+        session.close()
 
 
 def init_db() -> None:
@@ -32,4 +68,5 @@ def init_db() -> None:
 
     # Seed initial data
     seed_clubs()
+    seed_platform_admin()
 
