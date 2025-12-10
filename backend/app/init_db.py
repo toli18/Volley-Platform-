@@ -25,7 +25,7 @@ def seed_platform_admin() -> None:
 
     try:
         existing_admin = session.execute(
-            select(User).where(User.role == UserRole.PLATFORM_ADMIN)
+            select(User).where(User.role == UserRole.COACH)
         ).scalar_one_or_none()
 
         if existing_admin:
@@ -39,7 +39,7 @@ def seed_platform_admin() -> None:
             email=email,
             password_hash=get_password_hash(password),
             name="Platform Admin",
-            role=UserRole.PLATFORM_ADMIN,
+            role=UserRole.COACH,
             club_id=None,
         )
 
