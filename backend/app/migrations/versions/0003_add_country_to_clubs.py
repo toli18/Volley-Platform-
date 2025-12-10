@@ -3,7 +3,6 @@
 from alembic import op
 import sqlalchemy as sa
 
-# Revision identifiers
 revision = "0003_add_country_to_clubs"
 down_revision = "0002_add_users_table"
 branch_labels = None
@@ -16,3 +15,4 @@ def upgrade():
 
 def downgrade():
     op.drop_column("clubs", "country")
+
