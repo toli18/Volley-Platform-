@@ -69,4 +69,5 @@ def init_db() -> None:
     # Seed initial data
     seed_clubs()
     seed_platform_admin()
+    seed_drills()
 
