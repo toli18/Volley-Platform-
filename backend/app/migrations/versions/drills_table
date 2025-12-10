@@ -1,0 +1,35 @@
+def upgrade():
+    op.create_table(
+        "drills",
+        sa.Column("id", sa.Integer(), primary_key=True),
+        sa.Column("name", sa.String(255)),
+        sa.Column("category", sa.String(255)),
+        sa.Column("level", sa.String(255)),
+        sa.Column("skill_focus", sa.Text()),
+        sa.Column("goal", sa.Text()),
+        sa.Column("description", sa.Text()),
+        sa.Column("variations", sa.Text()),
+        sa.Column("players", sa.String(100)),
+        sa.Column("equipment", sa.String(255)),
+        sa.Column("rpe", sa.String(50)),
+        sa.Column("duration_min", sa.Integer()),
+        sa.Column("duration_max", sa.Integer()),
+        sa.Column("image_urls", sa.Text()),
+        sa.Column("video_urls", sa.Text()),
+        sa.Column("skill_domains", sa.String(255)),
+        sa.Column("game_phases", sa.String(255)),
+        sa.Column("tactical_focus", sa.String(255)),
+        sa.Column("technical_focus", sa.String(255)),
+        sa.Column("position_focus", sa.String(255)),
+        sa.Column("zone_focus", sa.String(255)),
+        sa.Column("complexity_level", sa.Integer()),
+        sa.Column("decision_level", sa.Integer()),
+        sa.Column("age_min", sa.Integer()),
+        sa.Column("age_max", sa.Integer()),
+        sa.Column("intensity_type", sa.String(100)),
+        sa.Column("training_goal", sa.String(255)),
+        sa.Column("type_of_drill", sa.String(100)),
+    )
+
+def downgrade():
+    op.drop_table("drills")
