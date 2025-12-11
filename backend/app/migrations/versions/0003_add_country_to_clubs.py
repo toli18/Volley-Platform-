@@ -12,6 +12,10 @@ depends_on = None
 def upgrade():
     bind = op.get_bind()
     inspector = sa.inspect(bind)
+
+    if "clubs" not in inspector.get_table_names():
+        return
+
     columns = {col["name"] for col in inspector.get_columns("clubs")}
 
     if "country" not in columns:
@@ -19,5 +23,12 @@ def upgrade():
 
 
 def downgrade():
-    op.drop_column("clubs", "country")
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
 
+    if "clubs" not in inspector.get_table_names():
+        return
+
+    columns = {col["name"] for col in inspector.get_columns("clubs")}
+    if "country" in columns:
+        op.drop_column("clubs", "country")

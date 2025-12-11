@@ -38,8 +38,11 @@ def seed_drills() -> None:
             reader = csv.DictReader(csvfile)
 
             for row in reader:
+                if not any((value or "").strip() for value in row.values()):
+                    continue
+
                 drill_id = parse_int(row.get("id"))
-                if drill_id in existing_ids:
+                if drill_id is None or drill_id in existing_ids:
                     continue
 
                 drill = Drill(

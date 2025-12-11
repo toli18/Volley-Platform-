@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from alembic import command
 from alembic.config import Config
@@ -13,11 +14,21 @@ from backend.app.seed.seed_drills import seed_drills
 from backend.app.settings import settings
 
 
-def run_migrations() -> None:
-    """Apply migrations and seed data if necessary."""
-    alembic_cfg = Config(str(settings.alembic_ini_path))
+def _build_alembic_config() -> Config:
+    ini_path: Path = settings.alembic_ini_path
+    if not ini_path.exists():
+        raise FileNotFoundError(f"Alembic config not found at {ini_path}")
+
+    alembic_cfg = Config(str(ini_path))
     alembic_cfg.set_main_option("script_location", str(settings.migrations_path))
     alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)
+    return alembic_cfg
+
+
+def run_migrations() -> None:
+    """Apply migrations. Fail fast if something goes wrong."""
+
+    alembic_cfg = _build_alembic_config()
     command.upgrade(alembic_cfg, "head")
 
 
@@ -61,8 +72,8 @@ def seed_platform_admin() -> None:
         session.close()
 
 
-def init_db() -> None:
-    """Initialize database tables and seed initial data."""
+def init_db() -> bool:
+    """Run migrations, then idempotent seeders."""
 
     try:
         run_migrations()
@@ -77,4 +88,3 @@ def init_db() -> None:
     seed_drills()
     seed_platform_admin()
     return True
-
