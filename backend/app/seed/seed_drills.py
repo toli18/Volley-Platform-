@@ -8,7 +8,7 @@ from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from backend.app.database import SessionLocal
 from backend.app.models import Drill
 
-CSV_PATH = Path("backend/app/seed/volleyball_full_transformed.csv")
+CSV_PATH = Path(__file__).resolve().parent / "volleyball_full_transformed.csv"
 
 
 def parse_int(value):
