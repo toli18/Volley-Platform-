@@ -1,55 +1,90 @@
 import csv
+from pathlib import Path
+from typing import List
+
+from sqlalchemy import select
+from sqlalchemy.exc import OperationalError, SQLAlchemyError
+
 from backend.app.database import SessionLocal
 from backend.app.models import Drill
 
-CSV_PATH = "backend/app/seed/volleyball_full_transformed.csv"
-
-def seed_drills():
-    db = SessionLocal()
-
-    with open(CSV_PATH, newline="", encoding="utf-8") as csvfile:
-        reader = csv.DictReader(csvfile)
-
-        for row in reader:
-            drill = Drill(
-                id=int(row["id"]),
-                name=row["name"],
-                category=row["category"],
-                level=row["level"],
-                skill_focus=row["skillFocus"],
-                goal=row["goal"],
-                description=row["description"],
-                variations=row["variations"],
-                players=row["players"],
-                equipment=row["equipment"],
-                rpe=row["rpe"],
-                duration_min=parse_int(row["durationMin"]),
-                duration_max=parse_int(row["durationMax"]),
-                image_urls=row["imageUrls"],
-                video_urls=row["videoUrls"],
-                skill_domains=row["skill_domains"],
-                game_phases=row["game_phases"],
-                tactical_focus=row["tactical_focus"],
-                technical_focus=row["technical_focus"],
-                position_focus=row["position_focus"],
-                zone_focus=row["zone_focus"],
-                complexity_level=parse_int(row["complexity_level"]),
-                decision_level=parse_int(row["decision_level"]),
-                age_min=parse_int(row["age_min"]),
-                age_max=parse_int(row["age_max"]),
-                intensity_type=row["intensity_type"],
-                training_goal=row["training_goal"],
-                type_of_drill=row["type_of_drill"],
-            )
-
-            db.add(drill)
-
-        db.commit()
-        db.close()
+CSV_PATH = Path("backend/app/seed/volleyball_full_transformed.csv")
 
 
 def parse_int(value):
     try:
         return int(value)
-    except:
+    except (TypeError, ValueError):
         return None
+
+
+def seed_drills() -> None:
+    if not CSV_PATH.exists():
+        print("⚠️ drills CSV not found, skipping seeding.")
+        return
+
+    session = SessionLocal()
+
+    try:
+        try:
+            existing_ids = {drill_id for (drill_id,) in session.execute(select(Drill.id)).all()}
+        except OperationalError:
+            print("⚠️ Drill table not ready yet, skipping seeding.")
+            return
+
+        new_drills: List[Drill] = []
+
+        with CSV_PATH.open(newline="", encoding="utf-8") as csvfile:
+            reader = csv.DictReader(csvfile)
+
+            for row in reader:
+                drill_id = parse_int(row.get("id"))
+                if drill_id in existing_ids:
+                    continue
+
+                drill = Drill(
+                    id=drill_id,
+                    name=row.get("name"),
+                    category=row.get("category"),
+                    level=row.get("level"),
+                    skill_focus=row.get("skillFocus"),
+                    goal=row.get("goal"),
+                    description=row.get("description"),
+                    variations=row.get("variations"),
+                    players=row.get("players"),
+                    equipment=row.get("equipment"),
+                    rpe=row.get("rpe"),
+                    duration_min=parse_int(row.get("durationMin")),
+                    duration_max=parse_int(row.get("durationMax")),
+                    image_urls=row.get("imageUrls"),
+                    video_urls=row.get("videoUrls"),
+                    skill_domains=row.get("skill_domains"),
+                    game_phases=row.get("game_phases"),
+                    tactical_focus=row.get("tactical_focus"),
+                    technical_focus=row.get("technical_focus"),
+                    position_focus=row.get("position_focus"),
+                    zone_focus=row.get("zone_focus"),
+                    complexity_level=parse_int(row.get("complexity_level")),
+                    decision_level=parse_int(row.get("decision_level")),
+                    age_min=parse_int(row.get("age_min")),
+                    age_max=parse_int(row.get("age_max")),
+                    intensity_type=row.get("intensity_type"),
+                    training_goal=row.get("training_goal"),
+                    type_of_drill=row.get("type_of_drill"),
+                )
+
+                existing_ids.add(drill_id)
+                new_drills.append(drill)
+
+        if new_drills:
+            session.add_all(new_drills)
+            session.commit()
+            print(f"✅ Seeded {len(new_drills)} drills.")
+        else:
+            print("ℹ️ Drills already seeded.")
+
+    except SQLAlchemyError as exc:
+        session.rollback()
+        print("❌ Failed to seed drills:", exc)
+    finally:
+        session.close()

@@ -17,7 +17,7 @@ class Settings(BaseSettings):
 
     # Alembic paths
     alembic_ini_path: Path = Path(__file__).resolve().parent.parent / "alembic.ini"
-    migrations_path: Path = Path(__file__).resolve().parent / "migrations"
+    migrations_path: Path = Path(__file__).resolve().parent.parent / "migrations"
 
     jwt_secret: str = Field(default="changeme-secret")
     jwt_algorithm: str = "HS256"

@@ -6,9 +6,10 @@ from sqlalchemy import select
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from backend.app.auth import get_password_hash
-from backend.app.database import Base, SessionLocal, engine
+from backend.app.database import SessionLocal
 from backend.app.models import User, UserRole
 from backend.app.seed import seed_clubs
+from backend.app.seed.seed_drills import seed_drills
 from backend.app.settings import settings
 
 
@@ -25,7 +26,7 @@ def seed_platform_admin() -> None:
 
     try:
         existing_admin = session.execute(
-            select(User).where(User.role == UserRole.COACH)
+            select(User).where(User.role == UserRole.PLATFORM_ADMIN)
         ).scalar_one_or_none()
 
         if existing_admin:
@@ -35,11 +36,18 @@ def seed_platform_admin() -> None:
         email = os.getenv("ADMIN_EMAIL", "admin@example.com")
         password = os.getenv("ADMIN_PASSWORD", "changeme123")
 
+        existing_by_email = session.execute(
+            select(User).where(User.email == email)
+        ).scalar_one_or_none()
+        if existing_by_email:
+            print("ℹ️ Admin email already used, skipping creation.")
+            return
+
         admin_user = User(
             email=email,
             password_hash=get_password_hash(password),
             name="Platform Admin",
-            role=UserRole.COACH,
+            role=UserRole.PLATFORM_ADMIN,
             club_id=None,
         )
 
@@ -57,17 +65,16 @@ def init_db() -> None:
     """Initialize database tables and seed initial data."""
 
     try:
-        # Apply migrations
         run_migrations()
-
-        # Create tables (fallback)
-        Base.metadata.create_all(bind=engine)
     except OperationalError as e:
         print("Database connection failed:", e)
-        return
+        raise
+    except Exception as e:  # pragma: no cover - defensive catch for startup
+        print("Unexpected error while running migrations:", e)
+        raise
 
-    # Seed initial data
     seed_clubs()
-    seed_platform_admin()
     seed_drills()
+    seed_platform_admin()
+    return True
 
