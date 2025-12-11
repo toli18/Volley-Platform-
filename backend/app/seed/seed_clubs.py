@@ -54,6 +54,7 @@ def seed_clubs() -> None:
             club = Club(
                 name=name,
                 city=row.get("city"),
+                country=row.get("country"),
                 address=row.get("address"),
                 contact_email=row.get("contact_email"),
                 contact_phone=row.get("contact_phone"),

@@ -1,4 +1,16 @@
-def upgrade():
+"""Create drills table"""
+
+import sqlalchemy as sa
+from alembic import op
+
+# revision identifiers, used by Alembic.
+revision = "0005_create_drills_table"
+down_revision = "0004_update_userrole_enum"
+branch_labels = None
+depends_on = None
+
+
+def upgrade() -> None:
     op.create_table(
         "drills",
         sa.Column("id", sa.Integer(), primary_key=True),
@@ -31,5 +43,6 @@ def upgrade():
         sa.Column("type_of_drill", sa.String(100)),
     )
 
-def downgrade():
+
+def downgrade() -> None:
     op.drop_table("drills")

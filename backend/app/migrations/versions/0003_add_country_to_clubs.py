@@ -10,7 +10,12 @@ depends_on = None
 
 
 def upgrade():
-    op.add_column("clubs", sa.Column("country", sa.String(255)))
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    columns = {col["name"] for col in inspector.get_columns("clubs")}
+
+    if "country" not in columns:
+        op.add_column("clubs", sa.Column("country", sa.String(255)))
 
 
 def downgrade():
