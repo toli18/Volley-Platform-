@@ -8,7 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError, OperationalError
 from backend.app.database import SessionLocal
 from backend.app.models import Club
 
-SEED_DIR = Path(__file__).parent
+SEED_DIR = Path(__file__).resolve().parent
 
 
 def _load_csv(path: Path) -> List[Dict[str, str]]:

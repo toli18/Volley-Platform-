@@ -8,9 +8,9 @@ from backend.app.database import Base
 
 
 class UserRole(str, Enum):
-    PLATFORM_ADMIN = "platform_admin"
-    BFV_ADMIN = "bfv_admin"
-    COACH = "coach"
+    platform_admin = "platform_admin"
+    bfv_admin = "bfv_admin"
+    coach = "coach"
 
 
 class Club(Base):
