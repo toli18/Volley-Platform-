@@ -5,6 +5,7 @@ from pathlib import Path
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
+# Ensure project root is on sys.path
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
@@ -12,10 +13,13 @@ if str(PROJECT_ROOT) not in sys.path:
 from backend.app.models import Base
 from backend.app.settings import settings
 
+# Alembic Config
 config = context.config
 
-# Ensure Alembic knows where to find migrations and how to connect
+# Ensure correct DB URL
 config.set_main_option("sqlalchemy.url", settings.database_url)
+
+# Script location (important for Render)
 config.set_main_option("script_location", str(settings.migrations_path))
 
 if config.config_file_name is not None:
@@ -25,6 +29,7 @@ target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
+    """Run migrations in 'offline' mode."""
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
@@ -38,6 +43,7 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
+    """Run migrations in 'online' mode."""
     connectable = engine_from_config(
         config.get_section(config.config_ini_section),
         prefix="sqlalchemy.",

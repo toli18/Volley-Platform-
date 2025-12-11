@@ -8,6 +8,7 @@ from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from backend.app.database import SessionLocal
 from backend.app.models import Drill
 
+# Use path relative to this file (works locally & on Render)
 CSV_PATH = Path(__file__).resolve().parent / "volleyball_full_transformed.csv"
 
 
@@ -19,6 +20,7 @@ def parse_int(value):
 
 
 def seed_drills() -> None:
+    # Prevent runtime error if CSV not found
     if not CSV_PATH.exists():
         print("⚠️ drills CSV not found, skipping seeding.")
         return
@@ -26,8 +28,11 @@ def seed_drills() -> None:
     session = SessionLocal()
 
     try:
+        # Fetch existing drill IDs safely
         try:
-            existing_ids = {drill_id for (drill_id,) in session.execute(select(Drill.id)).all()}
+            existing_ids = {
+                drill_id for (drill_id,) in session.execute(select(Drill.id)).all()
+            }
         except OperationalError:
             print("⚠️ Drill table not ready yet, skipping seeding.")
             return
@@ -38,10 +43,13 @@ def seed_drills() -> None:
             reader = csv.DictReader(csvfile)
 
             for row in reader:
+                # Skip empty or whitespace-only rows
                 if not any((value or "").strip() for value in row.values()):
                     continue
 
                 drill_id = parse_int(row.get("id"))
+
+                # Skip invalid IDs or duplicates
                 if drill_id is None or drill_id in existing_ids:
                     continue
 

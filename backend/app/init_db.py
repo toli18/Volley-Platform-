@@ -7,32 +7,30 @@ from sqlalchemy import select
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from backend.app.auth import get_password_hash
-from backend.app.database import SessionLocal
+from backend.app.database import Base, SessionLocal, engine
 from backend.app.models import User, UserRole
-from backend.app.seed import seed_clubs
+from backend.app.seed.seed_clubs import seed_clubs
 from backend.app.seed.seed_drills import seed_drills
 from backend.app.settings import settings
 
 
-def _build_alembic_config() -> Config:
-    ini_path: Path = settings.alembic_ini_path
+def run_alembic() -> None:
+    """Run migrations and seed data if necessary."""
+    ini_path = Path(settings.alembic_ini_path)
+
     if not ini_path.exists():
         raise FileNotFoundError(f"Alembic config not found at {ini_path}")
 
     alembic_cfg = Config(str(ini_path))
-    alembic_cfg.set_main_option("script_location", str(settings.migrations_path))
+    alembic_cfg.set_main_option("script_location", settings.migrations_path)
     alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)
-    return alembic_cfg
 
-
-def run_migrations() -> None:
-    """Apply migrations. Fail fast if something goes wrong."""
-
-    alembic_cfg = _build_alembic_config()
+    # Apply migrations
     command.upgrade(alembic_cfg, "head")
 
 
 def seed_platform_admin() -> None:
+    """Create default platform admin if not exists."""
     session = SessionLocal()
 
     try:
@@ -41,18 +39,12 @@ def seed_platform_admin() -> None:
         ).scalar_one_or_none()
 
         if existing_admin:
-            print("ℹ️ Platform admin already exists.")
+            print("ℹ️ Platform admin already exists, skipping.")
+            session.close()
             return
 
         email = os.getenv("ADMIN_EMAIL", "admin@example.com")
         password = os.getenv("ADMIN_PASSWORD", "changeme123")
-
-        existing_by_email = session.execute(
-            select(User).where(User.email == email)
-        ).scalar_one_or_none()
-        if existing_by_email:
-            print("ℹ️ Admin email already used, skipping creation.")
-            return
 
         admin_user = User(
             email=email,
@@ -64,7 +56,8 @@ def seed_platform_admin() -> None:
 
         session.add(admin_user)
         session.commit()
-        print(f"✅ Created platform admin user {email}.")
+        print(f"✅ Created platform admin user ({email}).")
+
     except SQLAlchemyError as exc:
         session.rollback()
         print("❌ Failed to seed admin user:", exc)
@@ -72,19 +65,22 @@ def seed_platform_admin() -> None:
         session.close()
 
 
-def init_db() -> bool:
-    """Run migrations, then idempotent seeders."""
-
+def init_db() -> None:
+    """Initialize database tables and seed initial data."""
     try:
-        run_migrations()
-    except OperationalError as e:
-        print("Database connection failed:", e)
-        raise
-    except Exception as e:  # pragma: no cover - defensive catch for startup
-        print("Unexpected error while running migrations:", e)
-        raise
+        # Ensure tables exist before migrations (safety net)
+        Base.metadata.create_all(bind=engine)
 
-    seed_clubs()
-    seed_drills()
-    seed_platform_admin()
-    return True
+        # Run migrations
+        run_alembic()
+
+        # Seed platform admin
+        seed_platform_admin()
+
+        # Seed CSV-driven data
+        seed_clubs()
+        seed_drills()
+
+    except Exception as exc:
+        print("❌ DB initialization failed:", exc)
+        raise
