@@ -14,19 +14,21 @@ from backend.app.seed.seed_drills import seed_drills
 from backend.app.settings import settings
 
 
-def run_alembic() -> None:
-    """Run migrations and seed data if necessary."""
-    ini_path = Path(settings.alembic_ini_path)
+def run_alembic():
+    """Apply migrations and seed data if necessary."""
+    alembic_cfg = Config(str(settings.alembic_ini_path))
 
-    if not ini_path.exists():
-        raise FileNotFoundError(f"Alembic config not found at {ini_path}")
-
-    alembic_cfg = Config(str(ini_path))
-    alembic_cfg.set_main_option("script_location", settings.migrations_path)
+    # Ensure alembic expects strings
+    alembic_cfg.set_main_option("script_location", str(settings.migrations_path))
     alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)
 
-    # Apply migrations
-    command.upgrade(alembic_cfg, "head")
+    try:
+        command.upgrade(alembic_cfg, "head")
+        print("✅ Alembic migrations applied.")
+    except Exception as exc:
+        print("❌ Alembic migration error:", exc)
+        raise
+
 
 
 def seed_platform_admin() -> None:
