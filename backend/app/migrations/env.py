@@ -1,7 +1,13 @@
 from logging.config import fileConfig
+import sys
+from pathlib import Path
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
+
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.append(str(PROJECT_ROOT))
 
 from backend.app.models import Base
 from backend.app.settings import settings
