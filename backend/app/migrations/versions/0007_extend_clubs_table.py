@@ -14,11 +14,10 @@ def upgrade():
     op.add_column("clubs", sa.Column("contact_email", sa.String(255)))
     op.add_column("clubs", sa.Column("contact_phone", sa.String(255)))
     op.add_column("clubs", sa.Column("website_url", sa.String(255)))
-    op.add_column("clubs", sa.Column("logo_url", sa.String(512)))
+    # ❌ НЕ добавяме logo_url
 
 
 def downgrade():
-    op.drop_column("clubs", "logo_url")
     op.drop_column("clubs", "website_url")
     op.drop_column("clubs", "contact_phone")
     op.drop_column("clubs", "contact_email")
