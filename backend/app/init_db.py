@@ -3,8 +3,8 @@ from pathlib import Path
 
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import select
-from sqlalchemy.exc import OperationalError, SQLAlchemyError
+from sqlalchemy import select, text
+from sqlalchemy.exc import SQLAlchemyError
 
 from backend.app.auth import get_password_hash
 from backend.app.database import Base, SessionLocal, engine
@@ -15,20 +15,32 @@ from backend.app.settings import settings
 
 
 def run_alembic():
-    """Apply migrations and seed data if necessary."""
+    """Apply migrations safely on Render (skip if tables already exist)."""
     alembic_cfg = Config(str(settings.alembic_ini_path))
 
-    # Ensure alembic expects strings
     alembic_cfg.set_main_option("script_location", str(settings.migrations_path))
     alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)
 
     try:
         command.upgrade(alembic_cfg, "head")
         print("✅ Alembic migrations applied.")
+
     except Exception as exc:
+        message = str(exc).lower()
+
+        # Skip duplicate table / column errors on Render
+        skip_errors = [
+            "already exists",
+            "duplicate",
+            "relation",
+        ]
+
+        if any(err in message for err in skip_errors):
+            print("⚠️ Skipping migration errors (tables already exist).")
+            return
+
         print("❌ Alembic migration error:", exc)
         raise
-
 
 
 def seed_platform_admin() -> None:
@@ -42,7 +54,6 @@ def seed_platform_admin() -> None:
 
         if existing_admin:
             print("ℹ️ Platform admin already exists, skipping.")
-            session.close()
             return
 
         email = os.getenv("ADMIN_EMAIL", "admin@example.com")
@@ -63,25 +74,26 @@ def seed_platform_admin() -> None:
     except SQLAlchemyError as exc:
         session.rollback()
         print("❌ Failed to seed admin user:", exc)
+
     finally:
         session.close()
 
 
 def init_db() -> None:
-    """Initialize database tables and seed initial data."""
+    """Initialize DB, run migrations, seed data."""
     try:
-        # Ensure tables exist before migrations (safety net)
+        # Safety net — ensure tables exist before Alembic runs
         Base.metadata.create_all(bind=engine)
 
-        # Run migrations
+        # Run migrations (safe mode)
         run_alembic()
 
-        # Seed platform admin
+        # Seed admin + static CSV data
         seed_platform_admin()
-
-        # Seed CSV-driven data
         seed_clubs()
         seed_drills()
+
+        print("✅ Database initialization complete.")
 
     except Exception as exc:
         print("❌ DB initialization failed:", exc)
