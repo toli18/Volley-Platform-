@@ -1,30 +1,43 @@
-from alembic import command
-from alembic.config import Config
-
-from backend.app.settings import settings
 from backend.app.seed.seed_clubs import seed_clubs
 from backend.app.seed.seed_drills import seed_drills
 from backend.app.models import User, UserRole
 from backend.app.database import SessionLocal
 from backend.app.auth import get_password_hash
+import os
+from sqlalchemy import select
 
 
-def run_alembic():
-    alembic_cfg = Config(str(settings.alembic_ini_path))
-    alembic_cfg.set_main_option("script_location", str(settings.migrations_path))
-    alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)
+def seed_platform_admin() -> None:
+    session = SessionLocal()
+    try:
+        existing_admin = session.execute(
+            select(User).where(User.role == UserRole.platform_admin)
+        ).scalar_one_or_none()
 
-    command.upgrade(alembic_cfg, "head")
-    print("✅ Alembic migrations applied.")
+        if existing_admin:
+            print("ℹ️ Platform admin already exists.")
+            return
+
+        email = os.getenv("ADMIN_EMAIL", "admin@example.com")
+        password = os.getenv("ADMIN_PASSWORD", "changeme123")
+
+        admin = User(
+            email=email,
+            password_hash=get_password_hash(password),
+            name="Platform Admin",
+            role=UserRole.platform_admin,
+        )
+
+        session.add(admin)
+        session.commit()
+        print("✅ Platform admin created.")
+
+    finally:
+        session.close()
 
 
 def init_db() -> None:
-    try:
-        run_alembic()
-        seed_platform_admin()
-        seed_clubs()
-        seed_drills()
-        print("✅ Database initialization complete.")
-    except Exception as exc:
-        print("❌ DB initialization failed:", exc)
-        raise
+    seed_platform_admin()
+    seed_clubs()
+    seed_drills()
+    print("✅ Seed completed.")
