@@ -10,10 +10,8 @@ depends_on = None
 
 
 def upgrade():
-    op.add_column(
-        "clubs",
-        sa.Column("country", sa.String(), nullable=True)
-    )
+    pass
+
 
 
 def downgrade():
