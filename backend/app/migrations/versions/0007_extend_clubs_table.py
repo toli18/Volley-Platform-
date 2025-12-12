@@ -10,11 +10,7 @@ depends_on = None
 
 
 def upgrade():
-    op.add_column("clubs", sa.Column("address", sa.String(255)))
-    op.add_column("clubs", sa.Column("contact_email", sa.String(255)))
-    op.add_column("clubs", sa.Column("contact_phone", sa.String(255)))
-    op.add_column("clubs", sa.Column("website_url", sa.String(255)))
-    # ❌ НЕ добавяме logo_url
+    pass
 
 
 def downgrade():
