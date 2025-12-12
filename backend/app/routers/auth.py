@@ -17,7 +17,7 @@ from backend.app.auth import (
 from backend.app.database import SessionLocal
 from backend.app.models import User, UserRole
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
