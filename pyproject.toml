@@ -6,6 +6,7 @@ authors = ["Volley Platform Team <dev@example.com>"]
 packages = [{ include = "backend" }]
 
 [tool.poetry.dependencies]
+bcrypt = "^4.1.2"
 python = "^3.11"
 fastapi = "0.115.2"
 uvicorn = "0.30.3"
