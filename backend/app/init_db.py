@@ -8,18 +8,12 @@ def run_alembic():
 
 
 def init_db() -> None:
-    """Initialize DB, run migrations, seed data."""
     try:
-        # 🔥 ONLY Alembic controls schema
         run_alembic()
-
-        # Seed data (idempotent)
         seed_platform_admin()
         seed_clubs()
         seed_drills()
-
         print("✅ Database initialization complete.")
-
     except Exception as exc:
         print("❌ DB initialization failed:", exc)
         raise
