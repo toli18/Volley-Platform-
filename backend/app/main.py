@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from backend.app.routes import auth, users, clubs, drills
+from backend.app.routers import auth, users, clubs, drills
 from backend.app.init_db import init_db
 
 app = FastAPI(title="Volley Platform API")
