@@ -7,10 +7,6 @@ from backend.app.init_db import init_db
 app = FastAPI(title="Volley Platform API")
 
 
-@app.on_event("startup")
-def startup_event():
-    init_db()
-
 
 app.include_router(auth, prefix="/auth", tags=["Auth"])
 app.include_router(users, prefix="/users", tags=["Users"])
