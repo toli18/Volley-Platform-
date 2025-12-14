@@ -9,7 +9,8 @@ from backend.app.database import SessionLocal
 from backend.app.models import Drill
 
 BASE_DIR = Path(__file__).resolve().parent
-csv_path = BASE_DIR / "drills.csv"
+CSV_PATH = BASE_DIR / "drills.csv"
+
 
 
 
