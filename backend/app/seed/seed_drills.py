@@ -8,8 +8,9 @@ from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from backend.app.database import SessionLocal
 from backend.app.models import Drill
 
-# Use path relative to this file (works locally & on Render)
-CSV_PATH = Path(__file__).resolve().parent / "volleyball_full_transformed.csv"
+BASE_DIR = Path(__file__).resolve().parent
+csv_path = BASE_DIR / "drills.csv"
+
 
 
 def parse_int(value):
