@@ -5,6 +5,7 @@ from backend.app.database import SessionLocal
 from backend.app.auth import get_password_hash
 import os
 from sqlalchemy import select
+from backend.app.seed.seed_drills import seed_drills
 
 
 def seed_platform_admin() -> None:
@@ -41,3 +42,7 @@ def init_db() -> None:
     seed_clubs()
     seed_drills()
     print("✅ Seed completed.")
+
+def init_db():
+    ...
+    seed_drills()
