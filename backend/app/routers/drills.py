@@ -36,9 +36,13 @@ def get_drill(drill_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=DrillRead)
-def create_drill(drill: DrillCreate, db: Session = Depends(get_db)):
+def create_drill(
+    drill: DrillCreate,
+    db: Session = Depends(get_db),
+):
     db_drill = Drill(**drill.dict())
     db.add(db_drill)
     db.commit()
     db.refresh(db_drill)
     return db_drill
+
