@@ -1,13 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from backend.app.database import get_db
-from backend.app.models import Drill
+from backend.app.dependencies.roles import require_role
+from backend.app.models import Drill, UserRole
 from backend.app.schemas.drill import DrillCreate, DrillRead
 
 router = APIRouter()
 
 
+# =========================================================
+# GET /drills  – всички роли (public read)
+# =========================================================
 @router.get("/", response_model=list[DrillRead])
 def get_drills(
     level: str | None = None,
@@ -36,20 +40,47 @@ def get_drills(
     return query.all()
 
 
+# =========================================================
+# GET /drills/{id} – всички роли
+# =========================================================
 @router.get("/{drill_id}", response_model=DrillRead)
-def get_drill(drill_id: int, db: Session = Depends(get_db)):
+def get_drill(
+    drill_id: int,
+    db: Session = Depends(get_db),
+):
     drill = db.query(Drill).filter(Drill.id == drill_id).first()
 
     if not drill:
-        raise HTTPException(status_code=404, detail="Drill not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Drill not found",
+        )
 
     return drill
 
 
-@router.post("/", response_model=DrillRead)
-def create_drill(drill: DrillCreate, db: Session = Depends(get_db)):
-    db_drill = Drill(**drill.dict())
+# =========================================================
+# POST /drills – само COACH
+# =========================================================
+@router.post(
+    "/",
+    response_model=DrillRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_drill(
+    drill: DrillCreate,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_role(UserRole.coach)),
+):
+    db_drill = Drill(
+        **drill.dict(),
+        # подготовка за следваща стъпка (ownership)
+        # created_by=current_user.id,
+        # club_id=current_user.club_id,
+    )
+
     db.add(db_drill)
     db.commit()
     db.refresh(db_drill)
+
     return db_drill
