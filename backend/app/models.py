@@ -31,14 +31,6 @@ class DrillStatus(str, Enum):
     rejected = "rejected"
 
 
-# =========================
-# Drill status (LIFECYCLE)
-# =========================
-class DrillStatus(str, Enum):
-    draft = "draft"         # coach – чернова
-    submitted = "submitted" # coach → bfv
-    approved = "approved"   # bfv_admin
-
 
 # =========================
 # Clubs
