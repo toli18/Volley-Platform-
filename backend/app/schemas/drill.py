@@ -1,7 +1,12 @@
 from typing import Optional
 from pydantic import BaseModel
 
+from backend.app.models import DrillStatus
 
+
+# =========================
+# Base
+# =========================
 class DrillBase(BaseModel):
     name: str
     category: Optional[str] = None
@@ -40,12 +45,30 @@ class DrillBase(BaseModel):
     type_of_drill: Optional[str] = None
 
 
+# =========================
+# Create (coach)
+# =========================
 class DrillCreate(DrillBase):
+    """
+    Coach НЕ може да подава status.
+    Статусът винаги започва като draft.
+    """
     pass
 
 
+# =========================
+# Read (GET)
+# =========================
 class DrillRead(DrillBase):
     id: int
+    status: DrillStatus
 
     class Config:
         from_attributes = True
+
+
+# =========================
+# Update status (bfv_admin)
+# =========================
+class DrillUpdateStatus(BaseModel):
+    status: DrillStatus
