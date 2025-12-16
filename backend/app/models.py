@@ -26,6 +26,16 @@ class UserRole(str, Enum):
 
 
 # =========================
+# Drill status (workflow)
+# =========================
+class DrillStatus(str, Enum):
+    draft = "draft"         # създаден от coach
+    pending = "pending"     # изпратен за одобрение
+    approved = "approved"   # одобрен
+    rejected = "rejected"   # отказан
+
+
+# =========================
 # Clubs
 # =========================
 class Club(Base):
@@ -41,12 +51,11 @@ class Club(Base):
     website_url = Column(String(255))
     logo_url = Column(String(512))
 
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
-    )
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     users = relationship("User", back_populates="club")
+    drills = relationship("Drill", back_populates="club")
 
 
 # =========================
@@ -59,20 +68,16 @@ class User(Base):
     email = Column(String(255), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     name = Column(String(255), nullable=False)
+
     role = Column(SqlEnum(UserRole), nullable=False)
 
     club_id = Column(Integer, ForeignKey("clubs.id"), nullable=True)
 
-    created_at = Column(
-        DateTime(timezone=True), server_default=func.now()
-    )
-    updated_at = Column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-    )
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     club = relationship("Club", back_populates="users")
+    drills_created = relationship("Drill", back_populates="creator")
 
 
 # =========================
@@ -122,3 +127,20 @@ class Drill(Base):
     intensity_type = Column(String(100))
     training_goal = Column(Text)
     type_of_drill = Column(String(100))
+
+    # --- Workflow ---
+    status = Column(
+        SqlEnum(DrillStatus),
+        nullable=False,
+        default=DrillStatus.draft,
+    )
+
+    # --- Ownership ---
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    club_id = Column(Integer, ForeignKey("clubs.id"), nullable=False)
+
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    creator = relationship("User", back_populates="drills_created")
+    club = relationship("Club", back_populates="drills")
