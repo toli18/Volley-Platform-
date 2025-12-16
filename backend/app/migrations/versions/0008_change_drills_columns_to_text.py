@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = "0008_change_drills_columns_to_text"
-down_revision = "0005_create_drills_table"
+down_revision = "0007_extend_clubs_table"
 branch_labels = None
 depends_on = None
 
