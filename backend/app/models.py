@@ -24,6 +24,12 @@ class UserRole(str, Enum):
     bfv_admin = "bfv_admin"
     coach = "coach"
 
+class DrillStatus(str, Enum):
+    draft = "draft"
+    pending = "pending"
+    approved = "approved"
+    rejected = "rejected"
+
 
 # =========================
 # Drill status (LIFECYCLE)
