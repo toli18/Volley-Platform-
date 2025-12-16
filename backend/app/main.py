@@ -11,7 +11,8 @@ def on_startup():
     init_db()
 
 
-app.include_router(auth, prefix="/auth", tags=["Auth"])
-app.include_router(users, prefix="/users", tags=["Users"])
-app.include_router(clubs, prefix="/clubs", tags=["Clubs"])
-app.include_router(drills.router)
+# Routers
+app.include_router(auth.router, prefix="/auth", tags=["Auth"])
+app.include_router(users.router, prefix="/users", tags=["Users"])
+app.include_router(clubs.router, prefix="/clubs", tags=["Clubs"])
+app.include_router(drills.router, prefix="/drills", tags=["Drills"])
