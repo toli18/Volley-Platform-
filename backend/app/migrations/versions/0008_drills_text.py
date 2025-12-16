@@ -1,7 +1,8 @@
 """Change drills long text fields to TEXT
 
-Revision ID: 0008_change_drills_columns_to_text
-Revises: 0005_create_drills_table
+revision = "0008_drills_text"
+down_revision = "0007_extend_clubs_table"
+
 Create Date: 2024-12-15
 """
 
