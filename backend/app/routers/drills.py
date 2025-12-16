@@ -5,17 +5,11 @@ from backend.app.database import get_db
 from backend.app.models import Drill
 from backend.app.schemas.drill import DrillCreate, DrillRead
 
-router = APIRouter(
-    prefix="/drills",
-    tags=["Drills"],
-)
+router = APIRouter()
 
 
-# =========================
-# GET /drills (list + filters)
-# =========================
 @router.get("/", response_model=list[DrillRead])
-def list_drills(
+def get_drills(
     level: str | None = None,
     age: int | None = None,
     skill: str | None = None,
@@ -27,7 +21,7 @@ def list_drills(
     if level:
         query = query.filter(Drill.level == level)
 
-    if age is not None:
+    if age:
         query = query.filter(
             Drill.age_min <= age,
             Drill.age_max >= age,
@@ -42,9 +36,6 @@ def list_drills(
     return query.all()
 
 
-# =========================
-# GET /drills/{id}
-# =========================
 @router.get("/{drill_id}", response_model=DrillRead)
 def get_drill(drill_id: int, db: Session = Depends(get_db)):
     drill = db.query(Drill).filter(Drill.id == drill_id).first()
@@ -55,9 +46,6 @@ def get_drill(drill_id: int, db: Session = Depends(get_db)):
     return drill
 
 
-# =========================
-# POST /drills
-# =========================
 @router.post("/", response_model=DrillRead)
 def create_drill(drill: DrillCreate, db: Session = Depends(get_db)):
     db_drill = Drill(**drill.dict())
