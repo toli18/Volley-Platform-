@@ -1,18 +1,33 @@
 from datetime import datetime
 from enum import Enum
 
-from sqlalchemy import Column, DateTime, Enum as SqlEnum, ForeignKey, Integer, String, func
+from sqlalchemy import (
+    Column,
+    DateTime,
+    Enum as SqlEnum,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.orm import relationship
 
 from backend.app.database import Base
 
 
+# =========================
+# User roles
+# =========================
 class UserRole(str, Enum):
     platform_admin = "platform_admin"
     bfv_admin = "bfv_admin"
     coach = "coach"
 
 
+# =========================
+# Clubs
+# =========================
 class Club(Base):
     __tablename__ = "clubs"
 
@@ -25,12 +40,18 @@ class Club(Base):
     contact_phone = Column(String(255))
     website_url = Column(String(255))
     logo_url = Column(String(512))
+
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
 
     users = relationship("User", back_populates="club")
 
 
+# =========================
+# Users
+# =========================
 class User(Base):
     __tablename__ = "users"
 
@@ -39,46 +60,58 @@ class User(Base):
     password_hash = Column(String(255), nullable=False)
     name = Column(String(255), nullable=False)
     role = Column(SqlEnum(UserRole), nullable=False)
+
     club_id = Column(Integer, ForeignKey("clubs.id"), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    created_at = Column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
 
     club = relationship("Club", back_populates="users")
 
+
+# =========================
+# Drills (Упражнения)
+# =========================
 class Drill(Base):
     __tablename__ = "drills"
 
     id = Column(Integer, primary_key=True, index=True)
 
-    # Основна информация
+    # --- Основна информация ---
     name = Column(String(255), nullable=False)
     category = Column(String(255))
     level = Column(String(255))
 
-    skill_focus = Column(String)
-    goal = Column(String)
-    description = Column(String)
-    variations = Column(String)
+    skill_focus = Column(Text)
+    goal = Column(Text)
+    description = Column(Text)
+    variations = Column(Text)
 
-    players = Column(String)
-    equipment = Column(String)
+    players = Column(Text)
+    equipment = Column(Text)
 
-    # Натоварване и време
-    rpe = Column(String)
+    # --- Натоварване и време ---
+    rpe = Column(String(50))
     duration_min = Column(Integer)
     duration_max = Column(Integer)
 
-    # Медия
-    image_urls = Column(String)
-    video_urls = Column(String)
+    # --- Медия ---
+    image_urls = Column(Text)
+    video_urls = Column(Text)
 
-    # ✅ ГЕНЕРАТОРНИ КОЛОНИ
-    skill_domains = Column(String)        # attack;block;defense
-    game_phases = Column(String)          # transition, break_point
-    tactical_focus = Column(String)
-    technical_focus = Column(String)
-    position_focus = Column(String)
-    zone_focus = Column(String)
+    # --- Генераторни / филтърни полета ---
+    skill_domains = Column(Text)       # attack;block;defense
+    game_phases = Column(Text)         # transition;break_point
+    tactical_focus = Column(Text)
+    technical_focus = Column(Text)
+    position_focus = Column(Text)
+    zone_focus = Column(Text)
 
     complexity_level = Column(Integer)
     decision_level = Column(Integer)
@@ -86,6 +119,6 @@ class Drill(Base):
     age_min = Column(Integer)
     age_max = Column(Integer)
 
-    intensity_type = Column(String)
-    training_goal = Column(String)
-    type_of_drill = Column(String)
+    intensity_type = Column(String(100))
+    training_goal = Column(Text)
+    type_of_drill = Column(String(100))
