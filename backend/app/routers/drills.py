@@ -3,65 +3,51 @@ from sqlalchemy.orm import Session
 
 from backend.app.database import get_db
 from backend.app.dependencies.roles import require_role
-from backend.app.models import Drill, UserRole
-from backend.app.schemas.drill import DrillCreate, DrillRead
+from backend.app.models import Drill, DrillStatus, UserRole
+from backend.app.schemas.drill import (
+    DrillCreate,
+    DrillRead,
+    DrillUpdateStatus,
+)
 
 router = APIRouter()
 
 
-# =========================================================
-# GET /drills  – всички роли (public read)
-# =========================================================
+# =========================
+# GET all drills (public)
+# =========================
 @router.get("/", response_model=list[DrillRead])
-def get_drills(
-    level: str | None = None,
-    age: int | None = None,
-    skill: str | None = None,
-    phase: str | None = None,
-    db: Session = Depends(get_db),
-):
-    query = db.query(Drill)
-
-    if level:
-        query = query.filter(Drill.level == level)
-
-    if age:
-        query = query.filter(
-            Drill.age_min <= age,
-            Drill.age_max >= age,
-        )
-
-    if skill:
-        query = query.filter(Drill.skill_domains.ilike(f"%{skill}%"))
-
-    if phase:
-        query = query.filter(Drill.game_phases.ilike(f"%{phase}%"))
-
-    return query.all()
+def get_drills(db: Session = Depends(get_db)):
+    return (
+        db.query(Drill)
+        .filter(Drill.status == DrillStatus.approved)
+        .all()
+    )
 
 
-# =========================================================
-# GET /drills/{id} – всички роли
-# =========================================================
+# =========================
+# GET drill by id (public)
+# =========================
 @router.get("/{drill_id}", response_model=DrillRead)
-def get_drill(
-    drill_id: int,
-    db: Session = Depends(get_db),
-):
-    drill = db.query(Drill).filter(Drill.id == drill_id).first()
+def get_drill(drill_id: int, db: Session = Depends(get_db)):
+    drill = (
+        db.query(Drill)
+        .filter(
+            Drill.id == drill_id,
+            Drill.status == DrillStatus.approved,
+        )
+        .first()
+    )
 
     if not drill:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Drill not found",
-        )
+        raise HTTPException(status_code=404, detail="Drill not found")
 
     return drill
 
 
-# =========================================================
-# POST /drills – само COACH
-# =========================================================
+# =========================
+# CREATE drill (coach)
+# =========================
 @router.post(
     "/",
     response_model=DrillRead,
@@ -74,9 +60,7 @@ def create_drill(
 ):
     db_drill = Drill(
         **drill.dict(),
-        # подготовка за следваща стъпка (ownership)
-        # created_by=current_user.id,
-        # club_id=current_user.club_id,
+        status=DrillStatus.draft,
     )
 
     db.add(db_drill)
@@ -84,3 +68,25 @@ def create_drill(
     db.refresh(db_drill)
 
     return db_drill
+
+
+# =========================
+# UPDATE drill status (bfv_admin)
+# =========================
+@router.patch("/{drill_id}/status", response_model=DrillRead)
+def update_drill_status(
+    drill_id: int,
+    payload: DrillUpdateStatus,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_role(UserRole.bfv_admin)),
+):
+    drill = db.query(Drill).filter(Drill.id == drill_id).first()
+
+    if not drill:
+        raise HTTPException(status_code=404, detail="Drill not found")
+
+    drill.status = payload.status
+    db.commit()
+    db.refresh(drill)
+
+    return drill
