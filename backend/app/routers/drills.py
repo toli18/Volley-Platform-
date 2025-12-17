@@ -78,7 +78,9 @@ def update_drill_status(
     drill_id: int,
     payload: DrillUpdateStatus,
     db: Session = Depends(get_db),
-    current_user=Depends(require_role(UserRole.bfv_admin)),
+    current_user=Depends(
+        require_role(UserRole.admin, UserRole.bfv_admin)
+    ),
 ):
     drill = db.query(Drill).filter(Drill.id == drill_id).first()
 
@@ -90,3 +92,4 @@ def update_drill_status(
     db.refresh(drill)
 
     return drill
+
