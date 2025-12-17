@@ -3,17 +3,21 @@ from enum import Enum
 from pydantic import BaseModel
 
 
-# ===== Drill status (READ-ONLY for coach) =====
+# ======================
+# Drill status ENUM
+# ======================
 class DrillStatus(str, Enum):
     draft = "draft"
     pending = "pending"
     approved = "approved"
-    rejected = "rejected"
 
 
-# ===== Base =====
+# ======================
+# Base schema
+# ======================
 class DrillBase(BaseModel):
     name: str
+
     category: Optional[str] = None
     level: Optional[str] = None
 
@@ -50,12 +54,23 @@ class DrillBase(BaseModel):
     type_of_drill: Optional[str] = None
 
 
-# ===== Create (coach НЕ подава status) =====
+# ======================
+# Create
+# ======================
 class DrillCreate(DrillBase):
     pass
 
 
-# ===== Read (status се вижда) =====
+# ======================
+# Update status (ТОВА ЛИПСВАШЕ)
+# ======================
+class DrillUpdateStatus(BaseModel):
+    status: DrillStatus
+
+
+# ======================
+# Read
+# ======================
 class DrillRead(DrillBase):
     id: int
     status: DrillStatus
